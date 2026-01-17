@@ -1,17 +1,16 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import admin from 'firebase-admin';
 import type { AppConfig } from './config.js';
 
+// Authenticated user attached to request
+export interface AuthenticatedUser {
+  uid: string;
+  email?: string | undefined;
+}
+
 // Extend Express Request type to include authenticated user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        uid: string;
-        email?: string;
-      };
-    }
-  }
+export interface AuthenticatedRequest extends Request {
+  user?: AuthenticatedUser;
 }
 
 /**
@@ -30,12 +29,14 @@ export function initializeFirebase(config: AppConfig): void {
  * Middleware to verify Firebase Auth JWT and extract user information
  * Rejects requests without valid authentication (401)
  */
-export function requireAuth(config: AppConfig) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export function requireAuth(config: AppConfig): RequestHandler {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const authReq = req as AuthenticatedRequest;
+
     // Local development bypass (disabled by default)
     if (config.allowLocalDevBypass && process.env.NODE_ENV !== 'production') {
       console.warn('WARNING: Local dev bypass enabled - skipping auth');
-      req.user = {
+      authReq.user = {
         uid: 'local-dev-user',
         email: 'dev@localhost',
       };
@@ -63,24 +64,25 @@ export function requireAuth(config: AppConfig) {
       return;
     }
 
-    try {
-      // Verify the JWT token
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-
-      // Extract user information
-      req.user = {
-        uid: decodedToken.uid,
-        email: decodedToken.email,
-      };
-
-      next();
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid or expired token',
+    // Verify the JWT token
+    admin
+      .auth()
+      .verifyIdToken(idToken)
+      .then((decodedToken) => {
+        // Extract user information
+        authReq.user = {
+          uid: decodedToken.uid,
+          email: decodedToken.email,
+        };
+        next();
+      })
+      .catch((error: unknown) => {
+        console.error('Token verification failed:', error);
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid or expired token',
+        });
       });
-    }
   };
 }
 
@@ -88,8 +90,9 @@ export function requireAuth(config: AppConfig) {
  * Optional auth middleware - does not reject unauthenticated requests
  * Use for endpoints that have different behavior for authenticated vs unauthenticated users
  */
-export function optionalAuth() {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export function optionalAuth(): RequestHandler {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    const authReq = req as AuthenticatedRequest;
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -104,17 +107,20 @@ export function optionalAuth() {
       return;
     }
 
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      req.user = {
-        uid: decodedToken.uid,
-        email: decodedToken.email,
-      };
-    } catch (error) {
-      console.warn('Optional auth: token verification failed:', error);
-      // Continue without user info
-    }
-
-    next();
+    admin
+      .auth()
+      .verifyIdToken(idToken)
+      .then((decodedToken) => {
+        authReq.user = {
+          uid: decodedToken.uid,
+          email: decodedToken.email,
+        };
+        next();
+      })
+      .catch((error: unknown) => {
+        console.warn('Optional auth: token verification failed:', error);
+        // Continue without user info
+        next();
+      });
   };
 }

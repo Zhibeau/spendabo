@@ -1,7 +1,7 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import { loadConfig } from './config.js';
-import { initializeFirebase, requireAuth } from './auth.js';
+import { initializeFirebase, requireAuth, type AuthenticatedRequest } from './auth.js';
 
 /**
  * Main application entry point
@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   });
 
   // Health check endpoint (also requires auth in strict mode)
-  app.get('/healthz', requireAuth(config), (_req: Request, res: Response) => {
+  app.get('/healthz', requireAuth(config), (_req, res: Response) => {
     res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -37,23 +37,25 @@ async function main(): Promise<void> {
   });
 
   // API routes (all require authentication)
-  app.get('/api/v1/me', requireAuth(config), (req: Request, res: Response) => {
+  app.get('/api/v1/me', requireAuth(config), (req, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
     res.status(200).json({
-      user: req.user,
+      user: authReq.user,
     });
   });
 
   // Example authenticated endpoint
-  app.get('/api/v1/status', requireAuth(config), (req: Request, res: Response) => {
+  app.get('/api/v1/status', requireAuth(config), (req, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
     res.status(200).json({
       message: 'API is running',
-      user: req.user,
+      user: authReq.user,
       timestamp: new Date().toISOString(),
     });
   });
 
   // 404 handler
-  app.use((_req: Request, res: Response) => {
+  app.use((_req, res: Response) => {
     res.status(404).json({
       error: 'Not Found',
       message: 'The requested resource does not exist',
