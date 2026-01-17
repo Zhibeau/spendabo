@@ -7,9 +7,9 @@ export interface AppConfig {
 }
 
 /**
- * Load configuration from environment variables and Secret Manager
+ * Load configuration from environment variables
  */
-export async function loadConfig(): Promise<AppConfig> {
+export function loadConfig(): AppConfig {
   const projectId = process.env.GCP_PROJECT_ID;
   const region = process.env.GCP_REGION || 'northamerica-northeast1';
   const port = parseInt(process.env.PORT || '8080', 10);

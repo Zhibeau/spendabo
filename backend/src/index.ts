@@ -8,7 +8,7 @@ import { initializeFirebase, requireAuth, type AuthenticatedRequest } from './au
  */
 async function main(): Promise<void> {
   // Load configuration
-  const config = await loadConfig();
+  const config = loadConfig();
 
   // Initialize Firebase Admin
   initializeFirebase(config);
