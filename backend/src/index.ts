@@ -28,8 +28,8 @@ async function main(): Promise<void> {
     next();
   });
 
-  // Health check endpoint (also requires auth in strict mode)
-  app.get('/healthz', requireAuth(config), (_req, res: Response) => {
+  // Health check endpoint (no auth - Cloud Run probes need to access this)
+  app.get('/healthz', (_req, res: Response) => {
     res.status(200).json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
