@@ -6,7 +6,7 @@ import { initializeFirebase, requireAuth, type AuthenticatedRequest } from './au
 /**
  * Main application entry point
  */
-async function main(): Promise<void> {
+function main(): void {
   // Load configuration
   const config = loadConfig();
 
@@ -81,7 +81,9 @@ async function main(): Promise<void> {
 }
 
 // Run the application
-main().catch((error) => {
+try {
+  main();
+} catch (error) {
   console.error('Fatal error:', error);
   process.exit(1);
-});
+}
