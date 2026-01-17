@@ -1,0 +1,22 @@
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control
+
+project_id = "spendabo-483503"
+region     = "northamerica-northeast1"
+
+# Cloud Run configuration
+service_name   = "spendabo-api"
+min_instances  = 0
+max_instances  = 10
+cpu_limit      = "1000m"
+memory_limit   = "512Mi"
+
+# Storage
+imports_bucket_suffix = "imports"
+
+# Container image (will be overridden by CI/CD)
+container_image = "gcr.io/cloudrun/hello"
+
+# Allowed invokers (empty = only authenticated users with explicit grants)
+# For testing, you can add: ["user:your-email@example.com"]
+allowed_invokers = ["user:zzhibo98@gmail.com"]
