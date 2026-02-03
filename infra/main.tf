@@ -101,6 +101,13 @@ resource "google_secret_manager_secret_iam_member" "cloudrun_secret_accessor" {
   member    = "serviceAccount:${google_service_account.cloudrun_runtime.email}"
 }
 
+# Grant Cloud Run runtime SA access to Vertex AI (for Gemini LLM)
+resource "google_project_iam_member" "cloudrun_vertexai_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.cloudrun_runtime.email}"
+}
+
 # Cloud Run service
 resource "google_cloud_run_v2_service" "api" {
   project  = var.project_id

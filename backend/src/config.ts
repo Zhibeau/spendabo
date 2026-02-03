@@ -10,7 +10,7 @@ export interface AppConfig {
  * Load configuration from environment variables
  */
 export function loadConfig(): AppConfig {
-  const projectId = process.env.GCP_PROJECT_ID;
+  const projectId = process.env.GCP_PROJECT_ID || "spendabo-483503";
   const region = process.env.GCP_REGION || 'northamerica-northeast1';
   const port = parseInt(process.env.PORT || '8080', 10);
   const allowLocalDevBypass = process.env.ALLOW_LOCAL_DEV_BYPASS === 'true';

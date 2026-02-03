@@ -2,6 +2,8 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import { loadConfig } from './config.js';
 import { initializeFirebase, requireAuth, type AuthenticatedRequest } from './auth.js';
+import { createTransactionRoutes, createCategoryRoutes } from './routes/transactions.js';
+import { createImportRoutes } from './routes/imports.js';
 
 /**
  * Main application entry point
@@ -17,7 +19,7 @@ function main(): void {
   const app = express();
 
   // Middleware
-  app.use(express.json());
+  app.use(express.json({ limit: '15mb' })); // Increased limit for file uploads
 
   // Request logging
   app.use((req, _res, next) => {
@@ -53,6 +55,11 @@ function main(): void {
       timestamp: new Date().toISOString(),
     });
   });
+
+  // Mount route modules
+  app.use('/api/v1/transactions', createTransactionRoutes(config));
+  app.use('/api/v1/categories', createCategoryRoutes(config));
+  app.use('/api/v1/imports', createImportRoutes(config));
 
   // 404 handler
   app.use((_req, res: Response) => {

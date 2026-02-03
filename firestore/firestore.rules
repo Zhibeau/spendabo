@@ -45,17 +45,14 @@ service cloud.firestore {
 
       allow create: if isAuthenticated()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.accountId == accountId
         && request.resource.data.name is string
         && request.resource.data.type is string
-        && request.resource.data.currency is string
         && isValidTimestamp(request.resource.data.createdAt)
         && isValidTimestamp(request.resource.data.updatedAt);
 
       allow update: if isAuthenticated()
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid  // UID immutable
-        && request.resource.data.accountId == resource.data.accountId  // ID immutable
         && isValidTimestamp(request.resource.data.updatedAt);
 
       allow delete: if isAuthenticated()
@@ -69,11 +66,14 @@ service cloud.firestore {
 
       allow create: if isAuthenticated()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.txId == txId
         && request.resource.data.accountId is string
         && request.resource.data.amount is number
-        && request.resource.data.currency is string
         && request.resource.data.description is string
+        && request.resource.data.merchantRaw is string
+        && request.resource.data.merchantNormalized is string
+        && request.resource.data.txKey is string
+        && request.resource.data.manualOverride is bool
+        && request.resource.data.isSplitParent is bool
         && isValidTimestamp(request.resource.data.postedAt)
         && isValidTimestamp(request.resource.data.createdAt)
         && isValidTimestamp(request.resource.data.updatedAt);
@@ -81,7 +81,8 @@ service cloud.firestore {
       allow update: if isAuthenticated()
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid  // UID immutable
-        && request.resource.data.txId == resource.data.txId  // ID immutable
+        && request.resource.data.txKey == resource.data.txKey  // txKey immutable
+        && request.resource.data.accountId == resource.data.accountId  // accountId immutable
         && isValidTimestamp(request.resource.data.updatedAt);
 
       allow delete: if isAuthenticated()
@@ -98,7 +99,6 @@ service cloud.firestore {
       // Users can create their own custom categories
       allow create: if isAuthenticated()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.categoryId == categoryId
         && request.resource.data.name is string
         && request.resource.data.isDefault == false
         && isValidTimestamp(request.resource.data.createdAt)
@@ -109,7 +109,6 @@ service cloud.firestore {
         && resource.data.uid == request.auth.uid
         && resource.data.isDefault == false
         && request.resource.data.uid == resource.data.uid  // UID immutable
-        && request.resource.data.categoryId == resource.data.categoryId  // ID immutable
         && request.resource.data.isDefault == false  // Can't become default
         && isValidTimestamp(request.resource.data.updatedAt);
 
@@ -126,19 +125,17 @@ service cloud.firestore {
 
       allow create: if isAuthenticated()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.ruleId == ruleId
-        && request.resource.data.field is string
-        && request.resource.data.operator is string
-        && request.resource.data.categoryId is string
+        && request.resource.data.name is string
         && request.resource.data.priority is number
         && request.resource.data.enabled is bool
+        && request.resource.data.conditions is map
+        && request.resource.data.action is map
         && isValidTimestamp(request.resource.data.createdAt)
         && isValidTimestamp(request.resource.data.updatedAt);
 
       allow update: if isAuthenticated()
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid  // UID immutable
-        && request.resource.data.ruleId == resource.data.ruleId  // ID immutable
         && isValidTimestamp(request.resource.data.updatedAt);
 
       allow delete: if isAuthenticated()
@@ -152,18 +149,31 @@ service cloud.firestore {
 
       allow create: if isAuthenticated()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.importId == importId
         && request.resource.data.accountId is string
-        && request.resource.data.fileName is string
-        && request.resource.data.fileSize is number
-        && request.resource.data.storagePath is string
+        && request.resource.data.filename is string
+        && request.resource.data.fileType is string
         && request.resource.data.status is string
         && isValidTimestamp(request.resource.data.createdAt);
 
       allow update: if isAuthenticated()
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == resource.data.uid  // UID immutable
-        && request.resource.data.importId == resource.data.importId;  // ID immutable
+        && request.resource.data.accountId == resource.data.accountId;  // accountId immutable
+
+      allow delete: if isAuthenticated()
+        && resource.data.uid == request.auth.uid;
+    }
+
+    // Dismissed suggestions collection: track dismissed rule suggestions
+    match /dismissedSuggestions/{suggestionId} {
+      allow read: if isAuthenticated()
+        && resource.data.uid == request.auth.uid;
+
+      allow create: if isAuthenticated()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.merchantNormalized is string
+        && request.resource.data.categoryId is string
+        && isValidTimestamp(request.resource.data.dismissedAt);
 
       allow delete: if isAuthenticated()
         && resource.data.uid == request.auth.uid;

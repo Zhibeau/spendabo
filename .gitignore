@@ -34,6 +34,7 @@ Thumbs.db
 coverage/
 *.test.js
 *.spec.js
+test-data/
 
 # Firebase
 .firebase/
