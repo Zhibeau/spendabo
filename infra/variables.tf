@@ -56,3 +56,9 @@ variable "allowed_invokers" {
   type        = list(string)
   default     = []
 }
+
+variable "frontend_url" {
+  description = "Frontend URL for CORS (e.g. https://spendabo.example.com)"
+  type        = string
+  default     = ""
+}

@@ -1,11 +1,13 @@
 import express from 'express';
 import type { Request, Response } from 'express';
+import cors from 'cors';
 import { loadConfig } from './config.js';
 import { initializeFirebase, requireAuth, type AuthenticatedRequest } from './auth.js';
 import { createTransactionRoutes, createCategoryRoutes } from './routes/transactions.js';
 import { createImportRoutes } from './routes/imports.js';
 import { createRulesRoutes } from './routes/rules.js';
 import { createAnalyticsRoutes } from './routes/analytics.js';
+import { createAccountRoutes } from './routes/accounts.js';
 
 /**
  * Main application entry point
@@ -19,6 +21,22 @@ function main(): void {
 
   // Create Express app
   const app = express();
+
+  // CORS — allow frontend origins
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ];
+  const corsOriginEnv = process.env.CORS_ALLOWED_ORIGIN;
+  if (corsOriginEnv) {
+    allowedOrigins.push(corsOriginEnv);
+  }
+  app.use(cors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400,
+  }));
 
   // Middleware
   app.use(express.json({ limit: '15mb' })); // Increased limit for file uploads
@@ -64,6 +82,7 @@ function main(): void {
   app.use('/api/v1/imports', createImportRoutes(config));
   app.use('/api/v1/rules', createRulesRoutes(config));
   app.use('/api/v1/analytics', createAnalyticsRoutes(config));
+  app.use('/api/v1/accounts', createAccountRoutes(config));
 
   // 404 handler
   app.use((_req, res: Response) => {

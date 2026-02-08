@@ -153,6 +153,14 @@ resource "google_cloud_run_v2_service" "api" {
         }
       }
 
+      dynamic "env" {
+        for_each = var.frontend_url != "" ? [var.frontend_url] : []
+        content {
+          name  = "CORS_ALLOWED_ORIGIN"
+          value = env.value
+        }
+      }
+
       # Healthcheck endpoint
       startup_probe {
         http_get {
