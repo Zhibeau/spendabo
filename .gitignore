@@ -35,6 +35,7 @@ coverage/
 *.test.js
 *.spec.js
 test-data/
+web/.next/
 
 # Firebase
 .firebase/

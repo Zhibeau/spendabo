@@ -127,6 +127,31 @@
         { "fieldPath": "uid", "order": "ASCENDING" },
         { "fieldPath": "merchantNormalized", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "dismissedSuggestions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "merchantNormalized", "order": "ASCENDING" },
+        { "fieldPath": "categoryId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "splitParentId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "uid", "order": "ASCENDING" },
+        { "fieldPath": "priority", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

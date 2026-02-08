@@ -189,7 +189,7 @@ async function testMultimodalImport(filePath: string) {
         .orderBy('postedAt', 'desc')
         .get();
 
-      transactionsSnapshot.forEach((doc, index) => {
+      transactionsSnapshot.docs.forEach((doc, index) => {
         const tx = doc.data();
         const amount = (tx.amount / 100).toFixed(2);
         const sign = tx.amount < 0 ? '-' : '+';

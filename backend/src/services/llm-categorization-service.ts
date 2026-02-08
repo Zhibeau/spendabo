@@ -25,7 +25,7 @@ const defaultConfig: LLMConfig = {
   anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
   vertexProjectId: process.env.GCP_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT,
   vertexLocation: process.env.VERTEX_LOCATION || 'us-central1',
-  vertexModel: process.env.VERTEX_MODEL || 'gemini-2.0-flash-001',
+  vertexModel: process.env.VERTEX_MODEL || 'gemini-2.5-flash',
 };
 
 let currentConfig: LLMConfig = { ...defaultConfig };
@@ -79,7 +79,7 @@ function getVertexModel(): GenerativeModel {
     });
 
     vertexModel = vertexAI.getGenerativeModel({
-      model: currentConfig.vertexModel || 'gemini-2.0-flash-001',
+      model: currentConfig.vertexModel || 'gemini-2.5-flash',
     });
   }
   return vertexModel;
@@ -113,19 +113,24 @@ const DOCUMENT_PARSE_SYSTEM_PROMPT = `You are a financial document parsing exper
 - Receipt images (photos of physical receipts)
 - Digital receipt screenshots
 
-For each transaction you find, extract:
+For bank statements (CSV/PDF), extract each transaction with:
 1. Date (posted date or transaction date)
 2. Amount (negative for expenses/debits, positive for income/credits)
 3. Description (the full transaction description)
 4. Merchant name (the vendor/merchant if identifiable)
 
+For receipts/images, extract BOTH the overall transaction AND individual line items:
+1. Overall receipt info: merchant name, date, subtotal, tax, tip, total
+2. Individual line items: each item purchased with name, quantity, unit price, total price
+3. Suggest a spending category for each line item (e.g., "groceries", "household", "personal care", "snacks", "beverages", "dairy", "meat", "produce", "frozen", "pharmacy", "electronics", "clothing", "restaurant", "entertainment")
+
 Guidelines:
-- Parse amounts as cents (multiply dollars by 100)
+- Parse ALL amounts as cents (multiply dollars by 100)
 - Use negative amounts for expenses/debits, positive for income/credits
 - Extract the raw merchant name as it appears
 - If a date is ambiguous, use the most likely interpretation
-- For receipts, the total amount is usually what we want (not individual line items unless specified)
-- Include all transactions visible in the document
+- For receipts: extract EVERY individual line item visible for category distribution
+- Categorize line items based on the item name (e.g., "Milk 2%" -> "dairy", "Advil" -> "pharmacy")
 
 Always respond with valid JSON matching the expected schema.`;
 
@@ -203,7 +208,59 @@ async function parseDocumentWithAnthropic(
 ): Promise<DocumentParseResult> {
   const client = getAnthropicClient();
 
-  const userPrompt = `Parse this ${documentType} document and extract all financial transactions.
+  // Different prompts for receipts vs bank statements
+  const isReceipt = documentType === 'image';
+
+  const userPrompt = isReceipt
+    ? `Parse this receipt image and extract ALL individual line items for category distribution.
+
+Respond with JSON in this exact format:
+{
+  "transactions": [
+    {
+      "postedAt": "YYYY-MM-DD",
+      "amount": -1234,
+      "description": "Full transaction description",
+      "merchantRaw": "Merchant name"
+    }
+  ],
+  "receipt": {
+    "merchantName": "Store Name",
+    "merchantAddress": "123 Main St, City, State",
+    "date": "YYYY-MM-DD",
+    "lineItems": [
+      {
+        "name": "Item name as shown on receipt",
+        "quantity": 1,
+        "unitPrice": 299,
+        "totalPrice": 299,
+        "category": "groceries"
+      }
+    ],
+    "subtotal": 1500,
+    "tax": 120,
+    "tip": 0,
+    "total": 1620,
+    "paymentMethod": "VISA *1234"
+  },
+  "metadata": {
+    "totalRows": 10,
+    "parsedRows": 10,
+    "errors": ["any parsing errors or warnings"]
+  }
+}
+
+Important:
+- Extract EVERY line item visible on the receipt
+- Amounts should be in cents (e.g., $12.34 = 1234)
+- Use negative amounts for the transaction (it's an expense)
+- Parse dates as YYYY-MM-DD format
+- Suggest a category for each line item based on what the item is:
+  - Food items: "groceries", "produce", "dairy", "meat", "frozen", "bakery", "snacks", "beverages"
+  - Non-food: "household", "personal care", "pharmacy", "cleaning", "pet supplies"
+  - Restaurant items: "dining", "fast food", "coffee"
+  - Other: "electronics", "clothing", "entertainment", "office supplies"`
+    : `Parse this ${documentType} document and extract all financial transactions.
 
 Respond with JSON in this exact format:
 {
@@ -277,10 +334,27 @@ Important:
       description: string;
       merchantRaw: string;
     }>;
+    receipt?: {
+      merchantName: string;
+      merchantAddress?: string;
+      date: string;
+      lineItems: Array<{
+        name: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        category?: string;
+      }>;
+      subtotal: number;
+      tax?: number;
+      tip?: number;
+      total: number;
+      paymentMethod?: string;
+    };
     metadata: { totalRows: number; parsedRows: number; errors: string[] };
   };
 
-  return {
+  const parseResult: DocumentParseResult = {
     transactions: result.transactions.map((tx) => ({
       postedAt: new Date(tx.postedAt),
       amount: tx.amount,
@@ -294,6 +368,23 @@ Important:
       errors: result.metadata.errors,
     },
   };
+
+  // Include receipt line items if present (for receipts/images)
+  if (result.receipt) {
+    parseResult.receipt = {
+      merchantName: result.receipt.merchantName,
+      merchantAddress: result.receipt.merchantAddress,
+      date: new Date(result.receipt.date),
+      lineItems: result.receipt.lineItems,
+      subtotal: result.receipt.subtotal,
+      tax: result.receipt.tax,
+      tip: result.receipt.tip,
+      total: result.receipt.total,
+      paymentMethod: result.receipt.paymentMethod,
+    };
+  }
+
+  return parseResult;
 }
 
 async function normalizeMerchantWithAnthropic(merchantRaw: string): Promise<string> {
@@ -384,7 +475,61 @@ async function parseDocumentWithVertexAI(
 ): Promise<DocumentParseResult> {
   const model = getVertexModel();
 
-  const userPrompt = `${DOCUMENT_PARSE_SYSTEM_PROMPT}
+  // Different prompts for receipts vs bank statements
+  const isReceipt = documentType === 'image';
+
+  const userPrompt = isReceipt
+    ? `${DOCUMENT_PARSE_SYSTEM_PROMPT}
+
+Parse this receipt image and extract ALL individual line items for category distribution.
+
+Respond with JSON in this exact format:
+{
+  "transactions": [
+    {
+      "postedAt": "YYYY-MM-DD",
+      "amount": -1234,
+      "description": "Full transaction description",
+      "merchantRaw": "Merchant name"
+    }
+  ],
+  "receipt": {
+    "merchantName": "Store Name",
+    "merchantAddress": "123 Main St, City, State",
+    "date": "YYYY-MM-DD",
+    "lineItems": [
+      {
+        "name": "Item name as shown on receipt",
+        "quantity": 1,
+        "unitPrice": 299,
+        "totalPrice": 299,
+        "category": "groceries"
+      }
+    ],
+    "subtotal": 1500,
+    "tax": 120,
+    "tip": 0,
+    "total": 1620,
+    "paymentMethod": "VISA *1234"
+  },
+  "metadata": {
+    "totalRows": 10,
+    "parsedRows": 10,
+    "errors": ["any parsing errors or warnings"]
+  }
+}
+
+Important:
+- Extract EVERY line item visible on the receipt
+- Amounts should be in cents (e.g., $12.34 = 1234)
+- Use negative amounts for the transaction (it's an expense)
+- Parse dates as YYYY-MM-DD format
+- Suggest a category for each line item based on what the item is:
+  - Food items: "groceries", "produce", "dairy", "meat", "frozen", "bakery", "snacks", "beverages"
+  - Non-food: "household", "personal care", "pharmacy", "cleaning", "pet supplies"
+  - Restaurant items: "dining", "fast food", "coffee"
+  - Other: "electronics", "clothing", "entertainment", "office supplies"`
+    : `${DOCUMENT_PARSE_SYSTEM_PROMPT}
 
 Parse this ${documentType} document and extract all financial transactions.
 
@@ -459,10 +604,27 @@ Important:
       description: string;
       merchantRaw: string;
     }>;
+    receipt?: {
+      merchantName: string;
+      merchantAddress?: string;
+      date: string;
+      lineItems: Array<{
+        name: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        category?: string;
+      }>;
+      subtotal: number;
+      tax?: number;
+      tip?: number;
+      total: number;
+      paymentMethod?: string;
+    };
     metadata: { totalRows: number; parsedRows: number; errors: string[] };
   };
 
-  return {
+  const parseResult: DocumentParseResult = {
     transactions: parsed.transactions.map((tx) => ({
       postedAt: new Date(tx.postedAt),
       amount: tx.amount,
@@ -476,6 +638,23 @@ Important:
       errors: parsed.metadata.errors,
     },
   };
+
+  // Include receipt line items if present (for receipts/images)
+  if (parsed.receipt) {
+    parseResult.receipt = {
+      merchantName: parsed.receipt.merchantName,
+      merchantAddress: parsed.receipt.merchantAddress,
+      date: new Date(parsed.receipt.date),
+      lineItems: parsed.receipt.lineItems,
+      subtotal: parsed.receipt.subtotal,
+      tax: parsed.receipt.tax,
+      tip: parsed.receipt.tip,
+      total: parsed.receipt.total,
+      paymentMethod: parsed.receipt.paymentMethod,
+    };
+  }
+
+  return parseResult;
 }
 
 async function normalizeMerchantWithVertexAI(merchantRaw: string): Promise<string> {

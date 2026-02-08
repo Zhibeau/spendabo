@@ -287,8 +287,37 @@ export interface ParsedTransaction {
   merchantRaw: string;
 }
 
+/**
+ * Individual line item from a receipt
+ * Used to distribute receipt items into different spending categories
+ */
+export interface ReceiptLineItem {
+  name: string; // Item name/description
+  quantity: number; // Quantity purchased
+  unitPrice: number; // Price per unit in cents
+  totalPrice: number; // Total price in cents (quantity * unitPrice)
+  category?: string; // Suggested category (e.g., "groceries", "household", "personal care")
+}
+
+/**
+ * Detailed receipt data with individual line items
+ */
+export interface ParsedReceipt {
+  merchantName: string;
+  merchantAddress?: string | undefined;
+  date: Date;
+  lineItems: ReceiptLineItem[];
+  subtotal: number; // In cents
+  tax?: number | undefined; // In cents
+  tip?: number | undefined; // In cents
+  total: number; // In cents
+  paymentMethod?: string | undefined;
+}
+
 export interface DocumentParseResult {
   transactions: ParsedTransaction[];
+  /** For receipts/images: detailed line items for category distribution */
+  receipt?: ParsedReceipt;
   metadata: {
     documentType: 'csv' | 'pdf' | 'image';
     totalRows: number;

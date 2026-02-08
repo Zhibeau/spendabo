@@ -13,11 +13,18 @@ import {
   updateTransaction,
   getAllCategories,
 } from '../services/transaction-service.js';
+import {
+  splitTransaction,
+  unsplitTransaction,
+  getSplitChildren,
+} from '../services/splits-service.js';
+import { generateRuleSuggestion, type RuleSuggestion } from '../services/rules-service.js';
 import type {
   ApiResponse,
   TransactionResponse,
   ListTransactionsQuery,
   UpdateTransactionBody,
+  SplitTransactionBody,
   CategoryResponse,
 } from '../types/index.js';
 
@@ -242,6 +249,9 @@ export function createTransactionRoutes(config: AppConfig): Router {
         return;
       }
 
+      // Get the old transaction to check if category changed
+      const oldTransaction = await getTransaction(db, uid, txId);
+
       const transaction = await updateTransaction(db, uid, txId, body);
 
       if (!transaction) {
@@ -256,10 +266,44 @@ export function createTransactionRoutes(config: AppConfig): Router {
         return;
       }
 
-      const response: ApiResponse<{ transaction: TransactionResponse }> = {
+      // Generate rule suggestion if category was changed manually
+      let ruleSuggestion: RuleSuggestion | null = null;
+
+      if (
+        body.categoryId !== undefined &&
+        oldTransaction &&
+        oldTransaction.categoryId !== body.categoryId
+      ) {
+        try {
+          // Get category name for suggestion
+          const categories = await getAllCategories(db, uid);
+          const category = categories.find((c) => c.id === body.categoryId);
+
+          if (category) {
+            ruleSuggestion = await generateRuleSuggestion(
+              db,
+              uid,
+              {
+                merchantNormalized: transaction.merchantNormalized,
+                description: transaction.description,
+              },
+              body.categoryId,
+              category.name
+            );
+          }
+        } catch (suggestionError) {
+          console.warn('Failed to generate rule suggestion:', suggestionError);
+        }
+      }
+
+      const response: ApiResponse<{
+        transaction: TransactionResponse;
+        ruleSuggestion?: RuleSuggestion | null;
+      }> = {
         success: true,
         data: {
           transaction,
+          ruleSuggestion,
         },
       };
 
@@ -285,6 +329,223 @@ export function createTransactionRoutes(config: AppConfig): Router {
         error: {
           code: 'INTERNAL_ERROR',
           message: 'Failed to update transaction',
+        },
+      };
+      res.status(500).json(response);
+    }
+  });
+
+  /**
+   * POST /api/v1/transactions/:txId/split
+   * Split a transaction into multiple parts
+   */
+  router.post('/:txId/split', requireAuth(config), async (req, res: Response) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const uid = authReq.user!.uid;
+      const { txId } = req.params;
+      const body = req.body as SplitTransactionBody;
+
+      if (!txId) {
+        const response: ApiResponse<never> = {
+          success: false,
+          error: {
+            code: 'INVALID_PARAMETER',
+            message: 'Transaction ID is required',
+          },
+        };
+        res.status(400).json(response);
+        return;
+      }
+
+      // Validate splits array
+      if (!Array.isArray(body.splits) || body.splits.length < 2) {
+        const response: ApiResponse<never> = {
+          success: false,
+          error: {
+            code: 'INVALID_PARAMETER',
+            message: 'At least 2 splits are required',
+          },
+        };
+        res.status(400).json(response);
+        return;
+      }
+
+      // Validate each split has an amount
+      for (const split of body.splits) {
+        if (typeof split.amount !== 'number') {
+          const response: ApiResponse<never> = {
+            success: false,
+            error: {
+              code: 'INVALID_PARAMETER',
+              message: 'Each split must have a numeric amount',
+            },
+          };
+          res.status(400).json(response);
+          return;
+        }
+      }
+
+      const result = await splitTransaction(db, uid, txId, body);
+
+      if (!result) {
+        const response: ApiResponse<never> = {
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Transaction not found',
+          },
+        };
+        res.status(404).json(response);
+        return;
+      }
+
+      const response: ApiResponse<typeof result> = {
+        success: true,
+        data: result,
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error('Error splitting transaction:', error);
+
+      // Handle validation errors
+      if (error instanceof Error) {
+        const response: ApiResponse<never> = {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: error.message,
+          },
+        };
+        res.status(400).json(response);
+        return;
+      }
+
+      const response: ApiResponse<never> = {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to split transaction',
+        },
+      };
+      res.status(500).json(response);
+    }
+  });
+
+  /**
+   * POST /api/v1/transactions/:txId/unsplit
+   * Unsplit a transaction (delete children, restore parent)
+   */
+  router.post('/:txId/unsplit', requireAuth(config), async (req, res: Response) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const uid = authReq.user!.uid;
+      const { txId } = req.params;
+
+      if (!txId) {
+        const response: ApiResponse<never> = {
+          success: false,
+          error: {
+            code: 'INVALID_PARAMETER',
+            message: 'Transaction ID is required',
+          },
+        };
+        res.status(400).json(response);
+        return;
+      }
+
+      const result = await unsplitTransaction(db, uid, txId);
+
+      if (!result) {
+        const response: ApiResponse<never> = {
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Transaction not found',
+          },
+        };
+        res.status(404).json(response);
+        return;
+      }
+
+      const response: ApiResponse<typeof result> = {
+        success: true,
+        data: result,
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error('Error unsplitting transaction:', error);
+
+      // Handle validation errors
+      if (error instanceof Error && error.message.includes('not split')) {
+        const response: ApiResponse<never> = {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: error.message,
+          },
+        };
+        res.status(400).json(response);
+        return;
+      }
+
+      const response: ApiResponse<never> = {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to unsplit transaction',
+        },
+      };
+      res.status(500).json(response);
+    }
+  });
+
+  /**
+   * GET /api/v1/transactions/:txId/splits
+   * Get split children of a transaction
+   */
+  router.get('/:txId/splits', requireAuth(config), async (req, res: Response) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const uid = authReq.user!.uid;
+      const { txId } = req.params;
+
+      if (!txId) {
+        const response: ApiResponse<never> = {
+          success: false,
+          error: {
+            code: 'INVALID_PARAMETER',
+            message: 'Transaction ID is required',
+          },
+        };
+        res.status(400).json(response);
+        return;
+      }
+
+      const splits = await getSplitChildren(db, uid, txId);
+
+      const response: ApiResponse<{
+        splits: Array<{
+          id: string;
+          amount: number;
+          categoryId: string | null;
+          notes: string | null;
+        }>;
+      }> = {
+        success: true,
+        data: { splits },
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error('Error getting split children:', error);
+      const response: ApiResponse<never> = {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to get split children',
         },
       };
       res.status(500).json(response);

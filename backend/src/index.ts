@@ -4,6 +4,8 @@ import { loadConfig } from './config.js';
 import { initializeFirebase, requireAuth, type AuthenticatedRequest } from './auth.js';
 import { createTransactionRoutes, createCategoryRoutes } from './routes/transactions.js';
 import { createImportRoutes } from './routes/imports.js';
+import { createRulesRoutes } from './routes/rules.js';
+import { createAnalyticsRoutes } from './routes/analytics.js';
 
 /**
  * Main application entry point
@@ -60,6 +62,8 @@ function main(): void {
   app.use('/api/v1/transactions', createTransactionRoutes(config));
   app.use('/api/v1/categories', createCategoryRoutes(config));
   app.use('/api/v1/imports', createImportRoutes(config));
+  app.use('/api/v1/rules', createRulesRoutes(config));
+  app.use('/api/v1/analytics', createAnalyticsRoutes(config));
 
   // 404 handler
   app.use((_req, res: Response) => {

@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run lint:fix:*)",
+      "Bash(npm test)",
+      "Bash(npm test -- --testNamePattern=\"should handle partial import failures\")",
+      "Bash(npm test -- --testNamePattern=\"should reject files that are too large\")",
+      "Bash(test -f TESTING_GUIDE.md)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(ls:*)",
+      "Bash(dir:*)"
     ]
   }
 }
