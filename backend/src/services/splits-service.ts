@@ -3,7 +3,7 @@
  * Handles splitting transactions into multiple parts with different categories
  */
 
-import type { Firestore } from '@google-cloud/firestore';
+import type { Firestore, Timestamp } from '@google-cloud/firestore';
 import { Collections, nowTimestamp } from './firestore.js';
 import type { SplitTransactionBody } from '../types/index.js';
 
@@ -120,13 +120,13 @@ export async function splitTransaction(
 
     const childData = {
       uid,
-      accountId: parentData.accountId,
-      importId: parentData.importId,
-      postedAt: parentData.postedAt,
+      accountId: parentData.accountId as string,
+      importId: parentData.importId as string,
+      postedAt: parentData.postedAt as Timestamp,
       amount: split.amount,
-      description: `${parentData.description} (Split ${i + 1}/${body.splits.length})`,
-      merchantRaw: parentData.merchantRaw,
-      merchantNormalized: parentData.merchantNormalized,
+      description: `${String(parentData.description)} (Split ${i + 1}/${body.splits.length})`,
+      merchantRaw: parentData.merchantRaw as string,
+      merchantNormalized: parentData.merchantNormalized as string,
       categoryId: split.categoryId ?? null,
       autoCategory: null,
       manualOverride: split.categoryId ? true : false,

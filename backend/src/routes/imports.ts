@@ -6,8 +6,9 @@
 import { Router, type Response } from 'express';
 import type { AppConfig } from '../config.js';
 import { requireAuth, type AuthenticatedRequest } from '../auth.js';
-import { getFirestore, Collections } from '../services/firestore.js';
+import { getFirestore, Collections, timestampToISO } from '../services/firestore.js';
 import { createImport, processImport } from '../services/import-service.js';
+import type { Timestamp } from '@google-cloud/firestore';
 import type { ApiResponse } from '../types/index.js';
 
 // Maximum file size (10MB)
@@ -50,7 +51,8 @@ export function createImportRoutes(config: AppConfig): Router {
   router.post('/upload', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       let accountId: string;
       let filename: string;
@@ -247,7 +249,8 @@ export function createImportRoutes(config: AppConfig): Router {
   router.get('/', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
 
@@ -262,14 +265,14 @@ export function createImportRoutes(config: AppConfig): Router {
         const data = doc.data();
         return {
           id: doc.id,
-          accountId: data.accountId,
-          filename: data.filename,
-          fileType: data.fileType,
-          status: data.status,
-          transactionCount: data.transactionCount,
-          errorMessage: data.errorMessage,
-          createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
-          completedAt: data.completedAt?.toDate?.()?.toISOString() ?? null,
+          accountId: data.accountId as string,
+          filename: data.filename as string,
+          fileType: data.fileType as string,
+          status: data.status as string,
+          transactionCount: data.transactionCount as number,
+          errorMessage: data.errorMessage as string | null,
+          createdAt: timestampToISO(data.createdAt as Timestamp | null),
+          completedAt: timestampToISO(data.completedAt as Timestamp | null),
         };
       });
 
@@ -299,7 +302,8 @@ export function createImportRoutes(config: AppConfig): Router {
   router.get('/:importId', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
       const { importId } = req.params;
 
       if (!importId) {
@@ -343,14 +347,14 @@ export function createImportRoutes(config: AppConfig): Router {
 
       const importData = {
         id: doc.id,
-        accountId: data.accountId,
-        filename: data.filename,
-        fileType: data.fileType,
-        status: data.status,
-        transactionCount: data.transactionCount,
-        errorMessage: data.errorMessage,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
-        completedAt: data.completedAt?.toDate?.()?.toISOString() ?? null,
+        accountId: data.accountId as string,
+        filename: data.filename as string,
+        fileType: data.fileType as string,
+        status: data.status as string,
+        transactionCount: data.transactionCount as number,
+        errorMessage: data.errorMessage as string | null,
+        createdAt: timestampToISO(data.createdAt as Timestamp | null),
+        completedAt: timestampToISO(data.completedAt as Timestamp | null),
       };
 
       const response: ApiResponse<{ import: typeof importData }> = {

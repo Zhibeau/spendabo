@@ -5,7 +5,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { VertexAI, GenerativeModel, Content, Part } from '@google-cloud/vertexai';
+import { VertexAI, type GenerativeModel, type Content, type Part } from '@google-cloud/vertexai';
 import type {
   LLMCategorizationRequest,
   LLMCategorizationResponse,

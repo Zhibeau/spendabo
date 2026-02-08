@@ -3,7 +3,7 @@
  * Handles all transaction-related Firestore operations
  */
 
-import type { Firestore, Query, DocumentData } from '@google-cloud/firestore';
+import type { Firestore, Query, DocumentData, Timestamp } from '@google-cloud/firestore';
 import {
   Collections,
   toTimestamp,
@@ -16,6 +16,8 @@ import type {
   Transaction,
   TransactionResponse,
   ExplainabilityResponse,
+  Explainability,
+  AutoCategoryResult,
   ListTransactionsQuery,
   UpdateTransactionBody,
   PaginationMeta,
@@ -40,23 +42,23 @@ function docToTransaction(id: string, data: DocumentData): Transaction {
     uid: data.uid as string,
     accountId: data.accountId as string,
     importId: data.importId as string,
-    postedAt: data.postedAt,
+    postedAt: data.postedAt as Timestamp,
     amount: data.amount as number,
     description: data.description as string,
     merchantRaw: data.merchantRaw as string,
     merchantNormalized: data.merchantNormalized as string,
     categoryId: data.categoryId as string | null,
-    autoCategory: data.autoCategory ?? null,
+    autoCategory: (data.autoCategory as unknown as AutoCategoryResult | null) ?? null,
     manualOverride: data.manualOverride as boolean,
-    explainability: data.explainability,
+    explainability: data.explainability as unknown as Explainability,
     notes: data.notes as string | null,
-    tags: (data.tags as string[]) ?? [],
-    correctedAt: data.correctedAt ?? null,
+    tags: ((data.tags as unknown as string[] | undefined) ?? []),
+    correctedAt: (data.correctedAt as Timestamp | null) ?? null,
     isSplitParent: data.isSplitParent as boolean,
     splitParentId: data.splitParentId as string | null,
     txKey: data.txKey as string,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    createdAt: data.createdAt as Timestamp,
+    updatedAt: data.updatedAt as Timestamp,
   };
 }
 
@@ -218,11 +220,13 @@ export async function listTransactions(
   }
 
   if (query.minAmount !== undefined) {
-    filteredTransactions = filteredTransactions.filter((tx) => tx.amount >= query.minAmount!);
+    const min = query.minAmount;
+    filteredTransactions = filteredTransactions.filter((tx) => tx.amount >= min);
   }
 
   if (query.maxAmount !== undefined) {
-    filteredTransactions = filteredTransactions.filter((tx) => tx.amount <= query.maxAmount!);
+    const max = query.maxAmount;
+    filteredTransactions = filteredTransactions.filter((tx) => tx.amount <= max);
   }
 
   if (query.tags) {
@@ -517,8 +521,8 @@ async function fetchCategories(
           parentId: data.parentId as string | null,
           sortOrder: data.sortOrder as number,
           isHidden: data.isHidden as boolean,
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
+          createdAt: data.createdAt as Timestamp,
+          updatedAt: data.updatedAt as Timestamp,
         });
       }
     }

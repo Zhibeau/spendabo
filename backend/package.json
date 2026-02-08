@@ -8,8 +8,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
     "test:ci": "npx tsx --env-file=.env src/scripts/test-multimodal-import.ts ./test-data/receipt.jpg",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
@@ -32,6 +32,7 @@
     "firebase-admin": "^12.7.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@jest/globals": "^30.2.0",
     "@types/express": "^4.17.21",
     "@types/jest": "^30.0.0",
@@ -44,7 +45,8 @@
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.54.0"
   },
   "engines": {
     "node": ">=20.0.0"

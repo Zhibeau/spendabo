@@ -3,7 +3,7 @@
  * Implements priority-based rule matching with explainability
  */
 
-import type { Firestore } from '@google-cloud/firestore';
+import type { Firestore, Timestamp } from '@google-cloud/firestore';
 import { Collections } from './firestore.js';
 import type {
   Rule,
@@ -176,13 +176,13 @@ export async function loadUserRules(db: Firestore, uid: string): Promise<Rule[]>
       name: data.name as string,
       enabled: data.enabled as boolean,
       priority: data.priority as number,
-      conditions: data.conditions as RuleConditions,
-      action: data.action as Rule['action'],
-      source: data.source as Rule['source'],
+      conditions: data.conditions as unknown as RuleConditions,
+      action: data.action as unknown as Rule['action'],
+      source: data.source as unknown as Rule['source'],
       matchCount: data.matchCount as number,
-      lastMatchedAt: data.lastMatchedAt ?? null,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
+      lastMatchedAt: (data.lastMatchedAt as Timestamp | null) ?? null,
+      createdAt: data.createdAt as Timestamp,
+      updatedAt: data.updatedAt as Timestamp,
     };
   });
 }

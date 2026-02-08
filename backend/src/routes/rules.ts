@@ -33,7 +33,8 @@ export function createRulesRoutes(config: AppConfig): Router {
   router.get('/', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const enabledOnly = req.query.enabledOnly === 'true';
       const rules = await listRules(db, uid, { enabledOnly });
@@ -60,7 +61,8 @@ export function createRulesRoutes(config: AppConfig): Router {
   router.get('/:ruleId', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const ruleId = req.params.ruleId;
       if (!ruleId) {
@@ -105,7 +107,8 @@ export function createRulesRoutes(config: AppConfig): Router {
   router.post('/', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const body = req.body as CreateRuleBody;
 
@@ -168,7 +171,8 @@ export function createRulesRoutes(config: AppConfig): Router {
   router.patch('/:ruleId', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const ruleId = req.params.ruleId;
       if (!ruleId) {
@@ -215,7 +219,8 @@ export function createRulesRoutes(config: AppConfig): Router {
   router.delete('/:ruleId', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const ruleId = req.params.ruleId;
       if (!ruleId) {
@@ -260,7 +265,8 @@ export function createRulesRoutes(config: AppConfig): Router {
   router.post('/reorder', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const { ruleIds } = req.body as { ruleIds: string[] };
 
@@ -300,7 +306,8 @@ export function createRulesRoutes(config: AppConfig): Router {
   router.post('/suggestions/dismiss', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const { merchantNormalized, categoryId } = req.body as {
         merchantNormalized: string;
@@ -343,7 +350,8 @@ export function createRulesRoutes(config: AppConfig): Router {
   router.post('/suggestions/accept', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const { suggestion } = req.body as {
         suggestion: {

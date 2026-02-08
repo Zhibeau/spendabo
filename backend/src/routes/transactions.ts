@@ -42,7 +42,8 @@ export function createTransactionRoutes(config: AppConfig): Router {
   router.get('/', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       // Parse query parameters
       const query: ListTransactionsQuery = {
@@ -139,7 +140,8 @@ export function createTransactionRoutes(config: AppConfig): Router {
   router.get('/:txId', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
       const { txId } = req.params;
 
       if (!txId) {
@@ -196,7 +198,8 @@ export function createTransactionRoutes(config: AppConfig): Router {
   router.patch('/:txId', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
       const { txId } = req.params;
       const body = req.body as UpdateTransactionBody;
 
@@ -342,7 +345,8 @@ export function createTransactionRoutes(config: AppConfig): Router {
   router.post('/:txId/split', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
       const { txId } = req.params;
       const body = req.body as SplitTransactionBody;
 
@@ -440,7 +444,8 @@ export function createTransactionRoutes(config: AppConfig): Router {
   router.post('/:txId/unsplit', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
       const { txId } = req.params;
 
       if (!txId) {
@@ -509,7 +514,8 @@ export function createTransactionRoutes(config: AppConfig): Router {
   router.get('/:txId/splits', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
       const { txId } = req.params;
 
       if (!txId) {
@@ -569,7 +575,8 @@ export function createCategoryRoutes(config: AppConfig): Router {
   router.get('/', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       const categories = await getAllCategories(db, uid);
 

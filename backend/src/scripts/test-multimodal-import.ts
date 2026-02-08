@@ -48,7 +48,7 @@ function detectMimeType(filename: string): string {
   return mimeTypes[ext || ''] || 'application/octet-stream';
 }
 
-async function testMultimodalImport(filePath: string) {
+async function testMultimodalImport(filePath: string): Promise<void> {
   console.log('🧪 Multimodal Import Test\n');
   console.log('='.repeat(60));
 
@@ -190,10 +190,21 @@ async function testMultimodalImport(filePath: string) {
         .get();
 
       transactionsSnapshot.docs.forEach((doc, index) => {
-        const tx = doc.data();
+        const tx = doc.data() as {
+          amount: number;
+          postedAt: { toDate: () => Date };
+          merchantNormalized: string;
+          description: string;
+          categoryId: string | null;
+          explainability?: {
+            reason: string;
+            confidence: number;
+            llmReasoning?: string;
+          };
+        };
         const amount = (tx.amount / 100).toFixed(2);
         const sign = tx.amount < 0 ? '-' : '+';
-        const postedDate = tx.postedAt.toDate().toISOString().split('T')[0];
+        const postedDate = tx.postedAt.toDate().toISOString().split('T')[0] ?? 'unknown';
 
         console.log(`Transaction ${index + 1}:`);
         console.log(`  📅 Date: ${postedDate}`);

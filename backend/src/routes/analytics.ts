@@ -31,7 +31,8 @@ export function createAnalyticsRoutes(config: AppConfig): Router {
   router.get('/monthly', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       // Parse month parameter (defaults to current month)
       let month = req.query.month as string | undefined;
@@ -81,7 +82,8 @@ export function createAnalyticsRoutes(config: AppConfig): Router {
   router.get('/trend', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       // Parse month parameter (defaults to current month)
       let month = req.query.month as string | undefined;
@@ -131,7 +133,8 @@ export function createAnalyticsRoutes(config: AppConfig): Router {
   router.get('/categories', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       // Parse months parameter
       const monthsParam = req.query.months as string | undefined;
@@ -203,7 +206,8 @@ export function createAnalyticsRoutes(config: AppConfig): Router {
   router.get('/accounts', requireAuth(config), async (req, res: Response) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const uid = authReq.user!.uid;
+      const uid = authReq.user?.uid;
+      if (!uid) { res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }); return; }
 
       // Optional month filter
       const month = req.query.month as string | undefined;

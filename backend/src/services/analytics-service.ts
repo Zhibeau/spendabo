@@ -3,7 +3,7 @@
  * Provides monthly overview, spending breakdown, and dashboard data
  */
 
-import type { Firestore, Query, DocumentData } from '@google-cloud/firestore';
+import type { Firestore, Query, DocumentData, Timestamp } from '@google-cloud/firestore';
 import { Collections, toTimestamp, timestampToISO } from './firestore.js';
 import { getAllCategories } from './transaction-service.js';
 
@@ -157,7 +157,7 @@ export async function getMonthlyOverview(
     const categoryId = data.categoryId as string | null;
     const merchantNormalized = data.merchantNormalized as string;
     const manualOverride = data.manualOverride as boolean;
-    const postedAt = timestampToISO(data.postedAt);
+    const postedAt = timestampToISO(data.postedAt as Timestamp | null | undefined);
 
     transactionCount++;
 
@@ -306,7 +306,7 @@ export async function getSpendingTrend(
   try {
     const prevMonthStr = getPreviousMonth(month);
     previousMonth = await getMonthlyOverview(db, uid, prevMonthStr);
-  } catch (error) {
+  } catch {
     // No previous month data
   }
 
@@ -381,7 +381,7 @@ export async function getCategoryTrends(
     result.set(category.id, {
       categoryId: category.id,
       categoryName: category.name,
-      monthlyAmounts: new Array(months.length).fill(0),
+      monthlyAmounts: new Array<number>(months.length).fill(0),
     });
   }
 
@@ -389,7 +389,7 @@ export async function getCategoryTrends(
   result.set('uncategorized', {
     categoryId: null,
     categoryName: 'Uncategorized',
-    monthlyAmounts: new Array(months.length).fill(0),
+    monthlyAmounts: new Array<number>(months.length).fill(0),
   });
 
   // Process each month

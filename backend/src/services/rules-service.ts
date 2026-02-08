@@ -3,7 +3,7 @@
  * Handles CRUD operations for categorization rules and rule suggestions
  */
 
-import type { Firestore, DocumentData } from '@google-cloud/firestore';
+import type { Firestore, DocumentData, Timestamp } from '@google-cloud/firestore';
 import { Collections, nowTimestamp, timestampToISO } from './firestore.js';
 import type {
   Rule,
@@ -29,13 +29,13 @@ function docToRule(id: string, data: DocumentData): Rule {
     name: data.name as string,
     enabled: data.enabled as boolean,
     priority: data.priority as number,
-    conditions: data.conditions as RuleConditions,
-    action: data.action as RuleAction,
-    source: data.source as Rule['source'],
+    conditions: data.conditions as unknown as RuleConditions,
+    action: data.action as unknown as RuleAction,
+    source: data.source as unknown as Rule['source'],
     matchCount: (data.matchCount as number) ?? 0,
-    lastMatchedAt: data.lastMatchedAt ?? null,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
+    lastMatchedAt: (data.lastMatchedAt as Timestamp | null) ?? null,
+    createdAt: data.createdAt as Timestamp,
+    updatedAt: data.updatedAt as Timestamp,
   };
 }
 
@@ -158,7 +158,11 @@ export async function createRule(
   const docRef = await db.collection(Collections.RULES).add(ruleData);
   const doc = await docRef.get();
 
-  return toRuleResponse(docToRule(doc.id, doc.data()!));
+  const createdData = doc.data();
+  if (!createdData) {
+    throw new Error('Failed to read created rule');
+  }
+  return toRuleResponse(docToRule(doc.id, createdData));
 }
 
 /**
@@ -224,7 +228,11 @@ export async function updateRule(
   await docRef.update(updateData);
 
   const updatedDoc = await docRef.get();
-  return toRuleResponse(docToRule(updatedDoc.id, updatedDoc.data()!));
+  const updatedData = updatedDoc.data();
+  if (!updatedData) {
+    throw new Error('Failed to read updated rule');
+  }
+  return toRuleResponse(docToRule(updatedDoc.id, updatedData));
 }
 
 /**
