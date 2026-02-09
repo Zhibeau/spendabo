@@ -10,7 +10,7 @@
 
 import type { Firestore } from '@google-cloud/firestore';
 import { categorizeWithRules, loadUserRules, updateRuleStats } from './rule-engine.js';
-import { categorizeWithLLM, batchCategorizeWithLLM } from './llm-categorization-service.js';
+import { categorizeWithLLM, batchCategorizeWithLLM, getLLMConfig } from './llm-categorization-service.js';
 import { getAllCategories } from './transaction-service.js';
 import { nowTimestamp } from './firestore.js';
 import type {
@@ -102,13 +102,16 @@ export async function categorizeTransaction(
 
     // If LLM found a category, use it
     if (llmResult.categoryId !== null) {
+      const config = getLLMConfig();
       return {
         categoryId: llmResult.categoryId,
         tags: [],
         explainability: {
           reason: 'llm',
           confidence: llmResult.confidence,
-          llmModel: 'claude-sonnet-4-20250514',
+          llmModel: config.provider === 'vertexai'
+            ? (config.vertexModel || 'gemini-2.5-flash')
+            : (config.anthropicModel || 'claude-sonnet-4-20250514'),
           llmReasoning: llmResult.reasoning,
           timestamp,
         },
@@ -227,13 +230,16 @@ export async function batchCategorizeTransactions(
       const llmResult = llmResults.get(tx.id);
 
       if (llmResult && llmResult.categoryId !== null) {
+        const config = getLLMConfig();
         results.set(tx.id, {
           categoryId: llmResult.categoryId,
           tags: [],
           explainability: {
             reason: 'llm',
             confidence: llmResult.confidence,
-            llmModel: 'claude-sonnet-4-20250514',
+            llmModel: config.provider === 'vertexai'
+              ? (config.vertexModel || 'gemini-2.5-flash')
+              : (config.anthropicModel || 'claude-sonnet-4-20250514'),
             llmReasoning: llmResult.reasoning,
             timestamp,
           },

@@ -23,6 +23,7 @@ import type {
   PaginationMeta,
   Category,
   CategoryResponse,
+  ReceiptLineItem,
 } from '../types/index.js';
 
 const MAX_LIMIT = 100;
@@ -56,6 +57,7 @@ function docToTransaction(id: string, data: DocumentData): Transaction {
     correctedAt: (data.correctedAt as Timestamp | null) ?? null,
     isSplitParent: data.isSplitParent as boolean,
     splitParentId: data.splitParentId as string | null,
+    receiptLineItems: (data.receiptLineItems as ReceiptLineItem[] | null) ?? null,
     txKey: data.txKey as string,
     createdAt: data.createdAt as Timestamp,
     updatedAt: data.updatedAt as Timestamp,
@@ -98,6 +100,7 @@ function toTransactionResponse(
     tags: tx.tags,
     isSplitParent: tx.isSplitParent,
     splitParentId: tx.splitParentId,
+    receiptLineItems: tx.receiptLineItems,
     explainability,
     createdAt: timestampToISO(tx.createdAt) ?? new Date().toISOString(),
     updatedAt: timestampToISO(tx.updatedAt) ?? new Date().toISOString(),
@@ -383,6 +386,7 @@ export async function createTransaction(
     txKey: string;
     categoryId?: string | null;
     explainability?: Transaction['explainability'];
+    receiptLineItems?: ReceiptLineItem[] | null;
   }
 ): Promise<string> {
   const now = nowTimestamp();
@@ -419,6 +423,7 @@ export async function createTransaction(
     correctedAt: null,
     isSplitParent: false,
     splitParentId: null,
+    receiptLineItems: data.receiptLineItems ?? null,
     txKey: data.txKey,
     createdAt: now,
     updatedAt: now,

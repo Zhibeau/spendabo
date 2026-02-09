@@ -12,7 +12,7 @@ import {
 } from './transaction-service.js';
 import { parseDocumentWithLLM, normalizeMerchantWithLLM } from './llm-categorization-service.js';
 import { batchCategorizeTransactions } from './categorization-orchestrator.js';
-import type { ParsedTransaction } from '../types/index.js';
+import type { ParsedTransaction, ReceiptLineItem } from '../types/index.js';
 
 /**
  * Generate a unique transaction key for deduplication
@@ -161,6 +161,7 @@ export async function processImport(
 }> {
   const errors: string[] = [];
   let parsedTransactions: ParsedTransaction[];
+  let receiptLineItems: ReceiptLineItem[] | null = null;
 
   // Update import status to processing
   const importRef = db.collection(Collections.IMPORTS).doc(importId);
@@ -187,6 +188,11 @@ export async function processImport(
       const llmResult = await parseDocumentWithLLM(content, documentType, mimeType);
       parsedTransactions = llmResult.transactions;
       errors.push(...llmResult.metadata.errors);
+
+      // Capture receipt line items for image imports
+      if (llmResult.receipt?.lineItems && llmResult.receipt.lineItems.length > 0) {
+        receiptLineItems = llmResult.receipt.lineItems;
+      }
     }
 
     if (parsedTransactions.length === 0) {
@@ -285,6 +291,7 @@ export async function processImport(
                 confidence: 0,
                 timestamp: nowTimestamp(),
               },
+          receiptLineItems,
         });
         created++;
       } catch (error) {

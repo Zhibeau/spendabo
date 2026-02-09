@@ -355,12 +355,16 @@ Important:
   };
 
   const parseResult: DocumentParseResult = {
-    transactions: result.transactions.map((tx) => ({
-      postedAt: new Date(tx.postedAt),
-      amount: tx.amount,
-      description: tx.description,
-      merchantRaw: tx.merchantRaw,
-    })),
+    transactions: result.transactions.map((tx) => {
+      const parsed = new Date(tx.postedAt);
+      const postedAt = isNaN(parsed.getTime()) ? new Date() : parsed;
+      return {
+        postedAt,
+        amount: tx.amount,
+        description: tx.description,
+        merchantRaw: tx.merchantRaw,
+      };
+    }),
     metadata: {
       documentType,
       totalRows: result.metadata.totalRows,
@@ -625,12 +629,16 @@ Important:
   };
 
   const parseResult: DocumentParseResult = {
-    transactions: parsed.transactions.map((tx) => ({
-      postedAt: new Date(tx.postedAt),
-      amount: tx.amount,
-      description: tx.description,
-      merchantRaw: tx.merchantRaw,
-    })),
+    transactions: parsed.transactions.map((tx) => {
+      const parsedDate = new Date(tx.postedAt);
+      const postedAt = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+      return {
+        postedAt,
+        amount: tx.amount,
+        description: tx.description,
+        merchantRaw: tx.merchantRaw,
+      };
+    }),
     metadata: {
       documentType,
       totalRows: parsed.metadata.totalRows,

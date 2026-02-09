@@ -61,6 +61,9 @@ export interface Transaction {
   isSplitParent: boolean;
   splitParentId: string | null;
 
+  // Receipt line items (for receipt/image imports)
+  receiptLineItems: ReceiptLineItem[] | null;
+
   // Metadata
   txKey: string;
   createdAt: Timestamp;
@@ -104,6 +107,7 @@ export interface TransactionResponse {
   tags: string[];
   isSplitParent: boolean;
   splitParentId: string | null;
+  receiptLineItems: ReceiptLineItem[] | null;
   explainability: ExplainabilityResponse;
   createdAt: string;
   updatedAt: string;
