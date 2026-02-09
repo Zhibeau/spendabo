@@ -146,8 +146,7 @@ export async function listTransactions(
   // Start with base query - always filter by uid
   let firestoreQuery: Query<DocumentData> = txCollection.where('uid', '==', uid);
 
-  // Filter out split parents (they shouldn't appear in the list)
-  firestoreQuery = firestoreQuery.where('isSplitParent', '==', false);
+  // Note: isSplitParent filter applied client-side to avoid requiring composite index
 
   // Date range filtering
   let startDate: Date;
@@ -212,8 +211,8 @@ export async function listTransactions(
   const categoryIds = [...new Set(transactions.map((tx) => tx.categoryId).filter((id): id is string => id !== null))];
   const categoryMap = await fetchCategories(db, uid, categoryIds);
 
-  // Apply client-side filters that Firestore can't handle efficiently
-  let filteredTransactions = transactions;
+  // Apply client-side filters
+  let filteredTransactions = transactions.filter((tx) => !tx.isSplitParent);
 
   if (query.merchant) {
     const merchantSearch = query.merchant.toUpperCase();
