@@ -148,29 +148,21 @@ export async function listTransactions(
 
   // Note: isSplitParent filter applied client-side to avoid requiring composite index
 
-  // Date range filtering
-  let startDate: Date;
-  let endDate: Date;
-
+  // Date range filtering (only when explicitly provided)
   if (query.startDate && query.endDate) {
-    startDate = new Date(query.startDate);
-    endDate = new Date(query.endDate);
+    const startDate = new Date(query.startDate);
+    const endDate = new Date(query.endDate);
     endDate.setHours(23, 59, 59, 999);
+    firestoreQuery = firestoreQuery
+      .where('postedAt', '>=', toTimestamp(startDate))
+      .where('postedAt', '<=', toTimestamp(endDate));
   } else if (query.month) {
     const range = getMonthDateRange(query.month);
-    startDate = range.start;
-    endDate = range.end;
-  } else {
-    // Default to current month
-    const now = new Date();
-    const range = getMonthDateRange(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-    startDate = range.start;
-    endDate = range.end;
+    firestoreQuery = firestoreQuery
+      .where('postedAt', '>=', toTimestamp(range.start))
+      .where('postedAt', '<=', toTimestamp(range.end));
   }
-
-  firestoreQuery = firestoreQuery
-    .where('postedAt', '>=', toTimestamp(startDate))
-    .where('postedAt', '<=', toTimestamp(endDate));
+  // else: no date filter — return all transactions
 
   // Additional filters
   if (query.categoryId) {
