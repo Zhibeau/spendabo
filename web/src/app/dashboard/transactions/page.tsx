@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Receipt, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertCircle, Receipt, ChevronDown, ChevronRight, Pencil, Tag } from 'lucide-react';
 import { cn, formatAmount, formatCurrency, formatDate, getCurrentMonth, formatMonth } from '@/lib/utils';
 import { api } from '@/lib/api/client';
+import { EditTransactionModal } from '@/components/transactions/EditTransactionModal';
 
 interface ReceiptLineItem {
   name: string;
@@ -32,6 +33,12 @@ interface TransactionResponse {
   isSplitParent: boolean;
   splitParentId: string | null;
   receiptLineItems: ReceiptLineItem[] | null;
+  explainability?: {
+    reason: string;
+    confidence: number;
+    llmReasoning?: string;
+    ruleName?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -69,6 +76,9 @@ export default function TransactionsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [fetchKey, setFetchKey] = useState(0);
   const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
+
+  // Edit modal state
+  const [editingTx, setEditingTx] = useState<TransactionResponse | null>(null);
 
   // Fetch accounts for filter dropdown
   useEffect(() => {
@@ -138,6 +148,13 @@ export default function TransactionsPage() {
       setLoadingMore(false);
     }
   }, [cursor, loadingMore, selectedMonth, selectedAccountId]);
+
+  /** Called by modal when a transaction has been successfully saved */
+  const handleTransactionSaved = useCallback((updated: TransactionResponse) => {
+    setTransactions((prev) =>
+      prev.map((tx) => (tx.id === updated.id ? updated : tx))
+    );
+  }, []);
 
   const recentMonths = getRecentMonths(12);
 
@@ -248,52 +265,90 @@ export default function TransactionsPage() {
                   const isExpanded = expandedTxId === tx.id;
 
                   return (
-                    <div key={tx.id}>
-                      <div
-                        className={cn(
-                          'flex items-center justify-between py-3 gap-4',
-                          hasLineItems && 'cursor-pointer hover:bg-muted/50 rounded -mx-2 px-2'
-                        )}
-                        onClick={hasLineItems ? () => setExpandedTxId(isExpanded ? null : tx.id) : undefined}
-                      >
-                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                          {hasLineItems && (
+                    <div key={tx.id} className="group">
+                      <div className="flex items-center gap-2 py-3">
+                        {/* Expand toggle for receipts */}
+                        {hasLineItems && (
+                          <button
+                            onClick={() => setExpandedTxId(isExpanded ? null : tx.id)}
+                            className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                          >
                             <ChevronRight className={cn(
-                              'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                              'h-4 w-4 transition-transform',
                               isExpanded && 'rotate-90'
                             )} />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                                {formatDate(tx.postedAt)}
+                          </button>
+                        )}
+                        {!hasLineItems && <div className="w-4 shrink-0" />}
+
+                        {/* Main info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">
+                              {formatDate(tx.postedAt)}
+                            </span>
+                            <span className="text-sm font-medium truncate">
+                              {tx.merchantNormalized || tx.merchantRaw || tx.description}
+                            </span>
+                            {hasLineItems && (
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                ({tx.receiptLineItems!.length} items)
                               </span>
-                              <span className="text-sm font-medium truncate">
-                                {tx.merchantNormalized || tx.merchantRaw || tx.description}
-                              </span>
-                              {hasLineItems && (
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                  ({tx.receiptLineItems!.length} items)
-                                </span>
-                              )}
-                            </div>
-                            {tx.description && tx.description !== (tx.merchantNormalized || tx.merchantRaw) && (
-                              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                {tx.description}
-                              </p>
                             )}
+                          </div>
+
+                          {tx.description && tx.description !== (tx.merchantNormalized || tx.merchantRaw) && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                              {tx.description}
+                            </p>
+                          )}
+
+                          {/* Badges row */}
+                          <div className="flex flex-wrap items-center gap-1 mt-1">
                             {tx.categoryName && (
-                              <span className="inline-block text-xs bg-muted rounded px-1.5 py-0.5 mt-1">
+                              <span className={cn(
+                                'inline-block text-xs rounded px-1.5 py-0.5',
+                                tx.manualOverride
+                                  ? 'bg-primary/10 text-primary'
+                                  : 'bg-muted text-muted-foreground'
+                              )}>
                                 {tx.categoryName}
+                                {tx.manualOverride && <span className="ml-1 opacity-60">✎</span>}
+                              </span>
+                            )}
+                            {tx.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex items-center gap-1 text-xs bg-secondary text-secondary-foreground rounded px-1.5 py-0.5"
+                              >
+                                <Tag className="h-2.5 w-2.5" />
+                                {tag}
+                              </span>
+                            ))}
+                            {tx.notes && (
+                              <span className="text-xs text-muted-foreground italic truncate max-w-xs">
+                                {tx.notes}
                               </span>
                             )}
                           </div>
                         </div>
-                        <div className={cn(
-                          'text-sm font-medium whitespace-nowrap',
-                          tx.amount >= 0 ? 'text-income' : 'text-expense'
-                        )}>
-                          {formatAmount(tx.amount)}
+
+                        {/* Amount + edit button */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={cn(
+                            'text-sm font-medium whitespace-nowrap',
+                            tx.amount >= 0 ? 'text-income' : 'text-expense'
+                          )}>
+                            {formatAmount(tx.amount)}
+                          </span>
+                          <button
+                            onClick={() => setEditingTx(tx)}
+                            className="opacity-0 group-hover:opacity-100 focus:opacity-100 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-all"
+                            aria-label="Edit transaction"
+                            title="Edit transaction"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       </div>
 
@@ -344,6 +399,18 @@ export default function TransactionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit modal */}
+      {editingTx && (
+        <EditTransactionModal
+          transaction={editingTx}
+          onClose={() => setEditingTx(null)}
+          onSaved={(updated) => {
+            handleTransactionSaved(updated);
+            setEditingTx(null);
+          }}
+        />
+      )}
     </div>
   );
 }
