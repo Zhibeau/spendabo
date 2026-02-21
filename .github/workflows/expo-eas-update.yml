@@ -2,9 +2,6 @@ name: Expo EAS Update
 
 on:
   push:
-    branches:
-      - main
-      - 'claude/**'
     paths:
       - 'spendabo_expo/**'
       - '.github/workflows/expo-eas-update.yml'
