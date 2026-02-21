@@ -1,0 +1,37 @@
+name: Expo EAS Update
+
+on:
+  push:
+    paths:
+      - 'spendabo_expo/**'
+      - '.github/workflows/expo-eas-update.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eas-update:
+    name: Publish EAS Update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: spendabo_expo/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./spendabo_expo
+        run: npm ci
+
+      - name: Publish EAS Update
+        working-directory: ./spendabo_expo
+        run: npx eas-cli update --auto --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

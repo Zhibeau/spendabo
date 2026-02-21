@@ -50,6 +50,12 @@
         "projectId": "440a3821-9018-47bf-a30d-e0e3ae5b569d"
       }
     },
-    "owner": "allmi"
+    "owner": "allmi",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/440a3821-9018-47bf-a30d-e0e3ae5b569d"
+    }
   }
 }
