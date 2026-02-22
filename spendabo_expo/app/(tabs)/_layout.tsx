@@ -1,10 +1,47 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
   return (
     <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>
+  );
+}
+
+/** Raised circular button for the centre camera tab */
+function CameraTabButton(props: BottomTabBarButtonProps) {
+  return (
+    <TouchableOpacity
+      {...props}
+      style={[
+        props.style,
+        {
+          top: -14,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+      ]}
+      activeOpacity={0.85}
+    >
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: "#14B8A6",
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#14B8A6",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.4,
+          shadowRadius: 8,
+          elevation: 6,
+        }}
+      >
+        <Text style={{ fontSize: 26 }}>📷</Text>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -43,6 +80,15 @@ export default function TabLayout() {
         options={{
           title: "Transactions",
           tabBarIcon: ({ focused }) => <TabIcon emoji="💳" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="camera"
+        options={{
+          title: "",
+          tabBarIcon: () => null,
+          tabBarButton: (props) => <CameraTabButton {...props} />,
+          headerTitle: "Scan Receipt",
         }}
       />
       <Tabs.Screen
