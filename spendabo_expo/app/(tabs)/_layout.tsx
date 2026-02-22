@@ -1,55 +1,137 @@
-import { Tabs } from "expo-router";
-import { View } from "react-native";
+import { Tabs, useRouter } from "expo-router";
+import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { Text, TouchableOpacity, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../../constants/theme";
 
-function TabIcon({
-  name,
-  focused,
-}: {
-  name: React.ComponentProps<typeof Feather>["name"];
-  focused: boolean;
-}) {
+// Tab definitions – order matches the route order declared in <Tabs> below
+const TABS = [
+  { name: "index",        icon: "home"     as const, label: "Home"         },
+  { name: "transactions", icon: "list"     as const, label: "Transactions" },
+  { name: "scan",         icon: "camera"   as const, label: "Scan",   isCamera: true },
+  { name: "budgets",      icon: "target"   as const, label: "Budgets"      },
+  { name: "profile",      icon: "user"     as const, label: "Profile"      },
+];
+
+function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+
+  // Map route names to our TABS config
+  const visibleRoutes = state.routes.filter((r) =>
+    TABS.some((t) => t.name === r.name)
+  );
+
   return (
     <View
       style={{
-        alignItems: "center",
-        justifyContent: "center",
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: focused ? Colors.accent : "transparent",
+        backgroundColor: Colors.card,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -8 },
+        shadowOpacity: 0.05,
+        shadowRadius: 30,
+        elevation: 16,
+        paddingBottom: insets.bottom,
+        paddingTop: 0,
       }}
     >
-      <Feather
-        name={name}
-        size={18}
-        color={focused ? Colors.tabActive : Colors.tabInactive}
-      />
+      <View
+        style={{
+          height: 72,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-around",
+          paddingHorizontal: 16,
+        }}
+      >
+        {visibleRoutes.map((route) => {
+          const tabConfig = TABS.find((t) => t.name === route.name);
+          if (!tabConfig) return null;
+
+          const isFocused =
+            state.routes[state.index]?.name === route.name;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: "tabPress",
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          // Floating camera button
+          if (tabConfig.isCamera) {
+            return (
+              <TouchableOpacity
+                key={route.key}
+                onPress={onPress}
+                activeOpacity={0.85}
+                style={{
+                  marginTop: -32,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                accessibilityLabel="Scan Receipt"
+              >
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    backgroundColor: Colors.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    shadowColor: Colors.primary,
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.45,
+                    shadowRadius: 24,
+                    elevation: 10,
+                  }}
+                >
+                  <Feather name="camera" size={22} color={Colors.primaryForeground} />
+                </View>
+              </TouchableOpacity>
+            );
+          }
+
+          // Regular tab button
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              activeOpacity={0.7}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 8,
+              }}
+              accessibilityLabel={tabConfig.label}
+            >
+              <Feather
+                name={tabConfig.icon}
+                size={22}
+                color={isFocused ? Colors.tabActive : Colors.tabInactive}
+                style={{ opacity: isFocused ? 1 : 0.7 }}
+              />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors.tabActive,
-        tabBarInactiveTintColor: Colors.tabInactive,
-        tabBarStyle: {
-          backgroundColor: Colors.card,
-          borderTopColor: "rgba(0,0,0,0.06)",
-          paddingBottom: insets.bottom,
-          height: 60 + insets.bottom,
-        },
-        tabBarLabelStyle: {
-          fontFamily: "PlusJakartaSans_500Medium",
-          fontSize: 11,
-          marginTop: -2,
-        },
         headerStyle: { backgroundColor: Colors.background },
         headerTitleStyle: {
           fontFamily: "PlusJakartaSans_600SemiBold",
@@ -59,46 +141,15 @@ export default function TabLayout() {
         headerTintColor: Colors.primary,
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          headerShown: false,
-          title: "Home",
-          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="transactions"
-        options={{
-          headerShown: false,
-          title: "Transactions",
-          tabBarIcon: ({ focused }) => <TabIcon name="list" focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="scan"
-        options={{
-          headerShown: false,
-          title: "Scan",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="camera" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="budgets"
-        options={{
-          headerShown: false,
-          title: "Budgets",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="target" focused={focused} />
-          ),
-        }}
-      />
-      {/* Hidden screens */}
-      <Tabs.Screen name="rules" options={{ href: null }} />
-      <Tabs.Screen name="imports" options={{ href: null }} />
-      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="index"        options={{ headerShown: false }} />
+      <Tabs.Screen name="transactions" options={{ headerShown: false }} />
+      <Tabs.Screen name="scan"         options={{ headerShown: false }} />
+      <Tabs.Screen name="budgets"      options={{ headerShown: false }} />
+      <Tabs.Screen name="profile"      options={{ headerShown: false }} />
+      {/* Hidden legacy screens */}
+      <Tabs.Screen name="rules"    options={{ href: null }} />
+      <Tabs.Screen name="imports"  options={{ href: null }} />
+      <Tabs.Screen name="explore"  options={{ href: null }} />
     </Tabs>
   );
 }
