@@ -1,10 +1,33 @@
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { View } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors } from "../../constants/theme";
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+function TabIcon({
+  name,
+  focused,
+}: {
+  name: React.ComponentProps<typeof Feather>["name"];
+  focused: boolean;
+}) {
   return (
-    <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>
+    <View
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: focused ? Colors.accent : "transparent",
+      }}
+    >
+      <Feather
+        name={name}
+        size={18}
+        color={focused ? Colors.tabActive : Colors.tabInactive}
+      />
+    </View>
   );
 }
 
@@ -14,51 +37,67 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#14B8A6",
-        tabBarInactiveTintColor: "#A8A29E",
+        tabBarActiveTintColor: Colors.tabActive,
+        tabBarInactiveTintColor: Colors.tabInactive,
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopColor: "#E8E0DA",
+          backgroundColor: Colors.card,
+          borderTopColor: "rgba(0,0,0,0.06)",
           paddingBottom: insets.bottom,
           height: 60 + insets.bottom,
         },
         tabBarLabelStyle: {
-          fontFamily: "Inter_500Medium",
+          fontFamily: "PlusJakartaSans_500Medium",
           fontSize: 11,
+          marginTop: -2,
         },
-        headerStyle: { backgroundColor: "#FFF8F5" },
-        headerTitleStyle: { fontFamily: "Inter_600SemiBold", color: "#1C1917", fontSize: 17 },
-        headerTintColor: "#14B8A6",
+        headerStyle: { backgroundColor: Colors.background },
+        headerTitleStyle: {
+          fontFamily: "PlusJakartaSans_600SemiBold",
+          color: Colors.text,
+          fontSize: 17,
+        },
+        headerTintColor: Colors.primary,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Dashboard",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
+          headerShown: false,
+          title: "Home",
+          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="transactions"
         options={{
+          headerShown: false,
           title: "Transactions",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💳" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name="list" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="rules"
+        name="scan"
         options={{
-          title: "Rules",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="⚡" focused={focused} />,
+          headerShown: false,
+          title: "Scan",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="camera" focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="imports"
+        name="budgets"
         options={{
-          title: "Imports",
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📥" focused={focused} />,
+          headerShown: false,
+          title: "Budgets",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="target" focused={focused} />
+          ),
         }}
       />
+      {/* Hidden screens */}
+      <Tabs.Screen name="rules" options={{ href: null }} />
+      <Tabs.Screen name="imports" options={{ href: null }} />
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );

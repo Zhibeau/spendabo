@@ -1,53 +1,37 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-import { Platform } from 'react-native';
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
+// Spendabo design tokens – sage green palette
 export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
+  background: '#FAFAF7',
+  text: '#2F3E46',
+  textMuted: '#8A9A9D',
+  primary: '#84A98C',
+  primaryForeground: '#FFFFFF',
+  card: '#FFFFFF',
+  accent: '#E8F0E9',
+  inputBg: '#F2F2EF',
+  border: 'rgba(0, 0, 0, 0.06)',
+  softPeach: '#F4C2C2',
+  paleYellow: '#FDF0D5',
+  mistyBlue: '#C1D3FE',
+  mutedGray: '#E8E8E5',
+  destructive: '#E07A5F',
+  warning: '#F4A261',
+  // Tab bar
+  tabActive: '#84A98C',
+  tabInactive: '#A8A29E',
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+export const cardShadow = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.03,
+  shadowRadius: 20,
+  elevation: 2,
+} as const;
+
+export const primaryShadow = {
+  shadowColor: '#84A98C',
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.35,
+  shadowRadius: 24,
+  elevation: 8,
+} as const;

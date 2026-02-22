@@ -1,14 +1,36 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StatCard } from "../../components/StatCard";
-import { CategoryBar } from "../../components/CategoryBar";
-import { TransactionRow } from "../../components/TransactionRow";
-import { SectionHeader } from "../../components/SectionHeader";
+import { Feather } from "@expo/vector-icons";
 import { getMonthlyAnalytics, getTransactions, getCategories } from "../../services/transactionService";
-import { formatCurrency, formatMonth } from "../../services/formatters";
+import { formatCurrency, formatDate } from "../../services/formatters";
+import { getCategoryConfigById } from "../../constants/categoryConfig";
+import { Colors, cardShadow } from "../../constants/theme";
 import type { MonthlyAnalytics, Transaction, Category } from "../../types";
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning,";
+  if (hour < 17) return "Good afternoon,";
+  return "Good evening,";
+}
+
+function formatRelativeDate(isoDate: string): string {
+  const date = new Date(isoDate);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return formatDate(isoDate);
+}
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -18,135 +40,366 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     getMonthlyAnalytics().then(setAnalytics);
-    getTransactions().then((txs) => setRecentTx(txs.slice(0, 4)));
+    getTransactions().then((txs) => setRecentTx(txs.slice(0, 5)));
     getCategories().then(setCategories);
   }, []);
 
-  const getCat = (id: string | null) =>
-    categories.find((c) => c.id === id) ?? null;
+  const getCat = (id: string | null) => categories.find((c) => c.id === id) ?? null;
 
   if (!analytics) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-[#FFF8F5]">
-        <Text className="text-stone-400">Loading...</Text>
+      <SafeAreaView
+        style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: Colors.background }}
+      >
+        <ActivityIndicator color={Colors.primary} />
       </SafeAreaView>
     );
   }
 
-  const delta = analytics.vsLastMonth;
-  const deltaStr = `${delta > 0 ? "+" : ""}${delta.toFixed(1)}% vs last month`;
+  const topCategories = analytics.byCategory
+    .filter((c) => c.categoryId !== "income" && c.categoryId !== "uncategorized")
+    .slice(0, 4);
+
+  const vsLastMonth = analytics.vsLastMonth;
+  const vsStr = vsLastMonth < 0
+    ? `↓ ${Math.abs(vsLastMonth).toFixed(0)}% less than last month`
+    : `↑ ${vsLastMonth.toFixed(0)}% more than last month`;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#FFF8F5]" edges={["bottom"]}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: Colors.background }}
+      edges={["top"]}
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="px-4 pb-2 pt-4">
-          <Text className="text-xs font-medium text-stone-400">
-            {formatMonth(analytics.month)}
-          </Text>
-          <Text className="mt-0.5 text-2xl font-bold text-stone-800">
-            Good morning 👋
-          </Text>
-        </View>
+        <View style={{ paddingHorizontal: 24, paddingBottom: 32 }}>
 
-        {/* Stats Row */}
-        <View className="flex-row gap-3 px-4 pt-2">
-          <StatCard
-            label="Total Spend"
-            value={formatCurrency(analytics.totalSpend)}
-            sub={deltaStr}
-            accent
-          />
-          <StatCard
-            label="Income"
-            value={formatCurrency(analytics.totalIncome)}
-            sub={`${analytics.transactionCount} transactions`}
-          />
-        </View>
-
-        {/* Uncategorized Alert */}
-        {analytics.byCategory.find((c) => c.categoryId === "uncategorized") && (
-          <View className="mx-4 mt-4 flex-row items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3.5">
-            <Text className="text-xl">⚠️</Text>
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-amber-800">
-                Uncategorized transactions
+          {/* Header */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingTop: 16,
+              marginBottom: 0,
+            }}
+          >
+            <View>
+              <Text
+                style={{
+                  color: Colors.textMuted,
+                  fontSize: 13,
+                  fontFamily: "PlusJakartaSans_500Medium",
+                }}
+              >
+                {getGreeting()}
               </Text>
-              <Text className="text-xs text-amber-600">
-                Some transactions need your review
+              <Text
+                style={{
+                  color: Colors.text,
+                  fontSize: 20,
+                  fontFamily: "PlusJakartaSans_600SemiBold",
+                  marginTop: 2,
+                }}
+              >
+                Alex 👋
+              </Text>
+            </View>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: Colors.mistyBlue,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text
+                style={{
+                  color: Colors.text,
+                  fontSize: 15,
+                  fontFamily: "PlusJakartaSans_600SemiBold",
+                }}
+              >
+                A
               </Text>
             </View>
           </View>
-        )}
 
-        {/* Category Breakdown */}
-        <SectionHeader
-          title="Spending by Category"
-          action={{ label: "All", onPress: () => router.push("/(tabs)/transactions") }}
-        />
-        <View className="mx-4 overflow-hidden rounded-2xl bg-white">
-          {analytics.byCategory
-            .filter((c) => c.categoryId !== "income")
-            .slice(0, 5)
-            .map((item, i) => {
-              const cat = getCat(item.categoryId);
-              if (!cat) return null;
-              return (
-                <View key={item.categoryId}>
-                  {i > 0 && <View className="mx-4 h-px bg-stone-100" />}
-                  <CategoryBar
-                    category={cat}
-                    amount={item.amount}
-                    percentage={item.percentage}
-                  />
-                </View>
-              );
-            })}
-        </View>
+          {/* Total Expenses Hero */}
+          <View style={{ marginTop: 32, alignItems: "center" }}>
+            <Text
+              style={{
+                color: Colors.textMuted,
+                fontSize: 13,
+                fontFamily: "PlusJakartaSans_500Medium",
+              }}
+            >
+              Total Expenses This Month
+            </Text>
+            <Text
+              style={{
+                color: Colors.text,
+                fontSize: 40,
+                fontFamily: "PlusJakartaSans_600SemiBold",
+                marginTop: 6,
+                letterSpacing: -1,
+                lineHeight: 48,
+              }}
+            >
+              {formatCurrency(analytics.totalSpend)}
+            </Text>
+            <Text
+              style={{
+                color: Colors.primary,
+                fontSize: 12,
+                fontFamily: "PlusJakartaSans_500Medium",
+                marginTop: 6,
+              }}
+            >
+              {vsStr}
+            </Text>
+          </View>
 
-        {/* Top Merchants */}
-        <SectionHeader title="Top Merchants" />
-        <View className="mx-4 overflow-hidden rounded-2xl bg-white">
-          {analytics.topMerchants.map((m, i) => (
-            <View key={m.name}>
-              {i > 0 && <View className="mx-4 h-px bg-stone-100" />}
-              <View className="flex-row items-center justify-between px-4 py-3">
-                <View className="flex-row items-center gap-3">
-                  <View className="h-9 w-9 items-center justify-center rounded-xl bg-teal-50">
-                    <Text className="text-sm font-bold text-teal-600">
-                      {m.name.charAt(0)}
+          {/* AI Insight Card */}
+          <View
+            style={{
+              marginTop: 28,
+              backgroundColor: Colors.accent,
+              borderRadius: 20,
+              padding: 16,
+              flexDirection: "row",
+              gap: 12,
+              alignItems: "flex-start",
+              ...cardShadow,
+            }}
+          >
+            <Feather
+              name="zap"
+              size={18}
+              color={Colors.primary}
+              style={{ marginTop: 1 }}
+            />
+            <Text
+              style={{
+                color: Colors.text,
+                fontSize: 13,
+                lineHeight: 20,
+                fontFamily: "PlusJakartaSans_400Regular",
+                flex: 1,
+              }}
+            >
+              You're spending a bit more on dining this month. Maybe cook at
+              home twice this week? 🍳
+            </Text>
+          </View>
+
+          {/* Top Categories */}
+          <View style={{ marginTop: 32 }}>
+            <Text
+              style={{
+                color: Colors.text,
+                fontSize: 15,
+                fontFamily: "PlusJakartaSans_600SemiBold",
+                marginBottom: 12,
+              }}
+            >
+              Top Categories
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingBottom: 6 }}
+            >
+              {topCategories.map((item) => {
+                const cat = getCat(item.categoryId);
+                const config = getCategoryConfigById(item.categoryId);
+                return (
+                  <View
+                    key={item.categoryId}
+                    style={{
+                      minWidth: 118,
+                      backgroundColor: Colors.card,
+                      borderRadius: 20,
+                      padding: 16,
+                      ...cardShadow,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 17,
+                        backgroundColor: config.bg,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginBottom: 24,
+                      }}
+                    >
+                      <Feather
+                        name={config.icon as any}
+                        size={16}
+                        color={config.iconColor}
+                      />
+                    </View>
+                    <Text
+                      style={{
+                        color: Colors.textMuted,
+                        fontSize: 11,
+                        fontFamily: "PlusJakartaSans_500Medium",
+                        marginBottom: 2,
+                      }}
+                    >
+                      {cat?.name ?? item.categoryId}
+                    </Text>
+                    <Text
+                      style={{
+                        color: Colors.text,
+                        fontSize: 14,
+                        fontFamily: "PlusJakartaSans_600SemiBold",
+                      }}
+                    >
+                      {formatCurrency(item.amount)}
                     </Text>
                   </View>
-                  <View>
-                    <Text className="text-sm font-medium text-stone-800">{m.name}</Text>
-                    <Text className="text-xs text-stone-400">{m.count} transaction{m.count !== 1 ? "s" : ""}</Text>
-                  </View>
-                </View>
-                <Text className="text-sm font-semibold text-stone-800">
-                  {formatCurrency(m.amount)}
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Recent Transactions */}
+          <View style={{ marginTop: 32 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <Text
+                style={{
+                  color: Colors.text,
+                  fontSize: 15,
+                  fontFamily: "PlusJakartaSans_600SemiBold",
+                }}
+              >
+                Recent
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/(tabs)/transactions")}
+                style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={{
+                    color: Colors.primary,
+                    fontSize: 13,
+                    fontFamily: "PlusJakartaSans_500Medium",
+                  }}
+                >
+                  See all
                 </Text>
-              </View>
+                <Feather name="arrow-right" size={14} color={Colors.primary} />
+              </TouchableOpacity>
             </View>
-          ))}
-        </View>
 
-        {/* Recent Transactions */}
-        <SectionHeader
-          title="Recent Transactions"
-          action={{ label: "See all", onPress: () => router.push("/(tabs)/transactions") }}
-        />
-        <View className="mx-4 overflow-hidden rounded-2xl bg-white">
-          {recentTx.map((tx) => (
-            <TransactionRow
-              key={tx.id}
-              transaction={tx}
-              category={getCat(tx.categoryId)}
-              onPress={() => router.push(`/transaction/${tx.id}`)}
-            />
-          ))}
+            <View style={{ gap: 10 }}>
+              {recentTx
+                .filter((tx) => tx.amount < 0)
+                .map((tx) => {
+                  const cat = getCat(tx.categoryId);
+                  const config = getCategoryConfigById(tx.categoryId);
+                  return (
+                    <View
+                      key={tx.id}
+                      style={{
+                        backgroundColor: Colors.card,
+                        borderRadius: 20,
+                        paddingVertical: 14,
+                        paddingHorizontal: 16,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        ...cardShadow,
+                      }}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
+                        <View
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: config.bg + "99",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Feather
+                            name={config.icon as any}
+                            size={16}
+                            color={Colors.text}
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              color: Colors.text,
+                              fontSize: 13,
+                              fontFamily: "PlusJakartaSans_600SemiBold",
+                              marginBottom: 2,
+                            }}
+                          >
+                            {tx.merchantNormalized}
+                          </Text>
+                          <Text
+                            style={{
+                              color: Colors.textMuted,
+                              fontSize: 11,
+                              fontFamily: "PlusJakartaSans_400Regular",
+                            }}
+                          >
+                            {formatRelativeDate(tx.postedAt)}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={{ alignItems: "flex-end", marginLeft: 8 }}>
+                        <Text
+                          style={{
+                            color: Colors.text,
+                            fontSize: 13,
+                            fontFamily: "PlusJakartaSans_600SemiBold",
+                            marginBottom: 4,
+                          }}
+                        >
+                          {formatCurrency(Math.abs(tx.amount))}
+                        </Text>
+                        <View
+                          style={{
+                            backgroundColor: Colors.inputBg,
+                            borderRadius: 100,
+                            paddingVertical: 2,
+                            paddingHorizontal: 8,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: Colors.textMuted,
+                              fontSize: 10,
+                              fontFamily: "PlusJakartaSans_500Medium",
+                            }}
+                          >
+                            {cat?.name ?? "Other"}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+            </View>
+          </View>
         </View>
-
-        <View className="h-8" />
       </ScrollView>
     </SafeAreaView>
   );
