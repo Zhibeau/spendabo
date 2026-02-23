@@ -12,11 +12,8 @@ import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "../global.css";
 
+// Keep the native splash visible until fonts are ready
 SplashScreen.preventAutoHideAsync();
-
-export const unstable_settings = {
-  anchor: "(tabs)",
-};
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -34,19 +31,22 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="onboarding"
-          options={{ headerShown: false, gestureEnabled: false }}
-        />
-        <Stack.Screen
-          name="auth"
-          options={{ headerShown: false, gestureEnabled: false }}
-        />
+      {/*
+        Navigation flow:
+          / (index)       → Splash screen (2.5s) → /onboarding
+          /onboarding     → 3-step carousel       → /auth
+          /auth           → Sign in / Sign up      → /(tabs)
+          /(tabs)         → Main app
+      */}
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index"    options={{ animation: "none" }} />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen name="(tabs)"   options={{ animation: "none" }} />
         <Stack.Screen
           name="transaction/[id]"
           options={{
+            headerShown: true,
             title: "Transaction",
             headerBackTitle: "Back",
             headerStyle: { backgroundColor: "#FAFAF7" },
