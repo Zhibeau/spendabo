@@ -1,9 +1,18 @@
-import React, { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import React, { useRef, useState } from "react";
+import {
+  Dimensions,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewToken,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { Colors, primaryShadow } from "../constants/theme";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const STEPS = [
   {
@@ -35,17 +44,31 @@ const STEPS = [
 export default function OnboardingScreen() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const current = STEPS[step];
+  const flatListRef = useRef<FlatList>(null);
 
   const handleNext = () => {
     if (step < STEPS.length - 1) {
-      setStep(step + 1);
+      const nextStep = step + 1;
+      flatListRef.current?.scrollToIndex({ index: nextStep, animated: true });
+      setStep(nextStep);
     } else {
       router.replace("/auth");
     }
   };
 
   const handleSkip = () => router.replace("/auth");
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        setStep(viewableItems[0].index);
+      }
+    }
+  ).current;
+
+  const viewabilityConfig = useRef({
+    viewAreaCoveragePercentThreshold: 50,
+  }).current;
 
   return (
     <SafeAreaView
@@ -67,55 +90,69 @@ export default function OnboardingScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 32,
-          paddingBottom: 40,
-        }}
-      >
-        <View
-          style={{
-            width: 120,
-            height: 120,
-            borderRadius: 36,
-            backgroundColor: current.bg,
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: 40,
-          }}
-        >
-          <Feather name={current.icon} size={56} color={current.iconColor} />
-        </View>
+      {/* Swipeable slides */}
+      <FlatList
+        ref={flatListRef}
+        data={STEPS}
+        keyExtractor={(_, i) => String(i)}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        bounces={false}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        style={{ flex: 1 }}
+        renderItem={({ item }) => (
+          <View
+            style={{
+              width: SCREEN_WIDTH,
+              alignItems: "center",
+              justifyContent: "center",
+              paddingHorizontal: 32,
+              paddingBottom: 40,
+            }}
+          >
+            <View
+              style={{
+                width: 120,
+                height: 120,
+                borderRadius: 36,
+                backgroundColor: item.bg,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 40,
+              }}
+            >
+              <Feather name={item.icon} size={56} color={item.iconColor} />
+            </View>
 
-        <Text
-          style={{
-            color: Colors.text,
-            fontSize: 26,
-            fontFamily: "PlusJakartaSans_600SemiBold",
-            marginBottom: 14,
-            textAlign: "center",
-            lineHeight: 34,
-          }}
-        >
-          {current.title}
-        </Text>
-        <Text
-          style={{
-            color: Colors.textMuted,
-            fontSize: 14,
-            lineHeight: 24,
-            fontFamily: "PlusJakartaSans_400Regular",
-            textAlign: "center",
-            maxWidth: 280,
-          }}
-        >
-          {current.description}
-        </Text>
-      </View>
+            <Text
+              style={{
+                color: Colors.text,
+                fontSize: 26,
+                fontFamily: "PlusJakartaSans_600SemiBold",
+                marginBottom: 14,
+                textAlign: "center",
+                lineHeight: 34,
+              }}
+            >
+              {item.title}
+            </Text>
+            <Text
+              style={{
+                color: Colors.textMuted,
+                fontSize: 14,
+                lineHeight: 24,
+                fontFamily: "PlusJakartaSans_400Regular",
+                textAlign: "center",
+                maxWidth: 280,
+              }}
+            >
+              {item.description}
+            </Text>
+          </View>
+        )}
+      />
 
       {/* Bottom */}
       <View style={{ paddingHorizontal: 24, paddingBottom: 48 }}>

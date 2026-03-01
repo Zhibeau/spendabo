@@ -2,12 +2,16 @@ import Constants from "expo-constants";
 import { FirebaseApp, getApps, initializeApp } from "firebase/app";
 import {
   Auth,
+  GoogleAuthProvider,
   User,
+  createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { createContext, useContext, useEffect, useState } from "react";
 
 const extra = Constants.expoConfig?.extra ?? {};
@@ -27,12 +31,18 @@ const app: FirebaseApp =
 
 const auth: Auth = getAuth(app);
 
+GoogleSignin.configure({
+  webClientId: extra.googleWebClientId as string,
+});
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AuthState = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   logOut: () => Promise<void>;
 };
 
@@ -42,6 +52,8 @@ const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
   signIn: async () => {},
+  signUp: async () => {},
+  signInWithGoogle: async () => {},
   logOut: async () => {},
 });
 
@@ -61,12 +73,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password);
   }
 
+  async function signUp(email: string, password: string) {
+    await createUserWithEmailAndPassword(auth, email, password);
+  }
+
+  async function signInWithGoogle() {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    const response = await GoogleSignin.signIn();
+    if (response.type !== "success" || !response.data?.idToken) {
+      throw new Error("Google sign-in was cancelled or failed");
+    }
+    const credential = GoogleAuthProvider.credential(response.data.idToken);
+    await signInWithCredential(auth, credential);
+  }
+
   async function logOut() {
     await signOut(auth);
+    await GoogleSignin.signOut();
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, logOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, logOut }}>
       {children}
     </AuthContext.Provider>
   );

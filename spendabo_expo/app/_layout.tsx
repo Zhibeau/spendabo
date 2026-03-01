@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import {
   useFonts,
@@ -10,10 +10,33 @@ import {
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AuthProvider, useAuth } from "../context/AuthContext";
 import "../global.css";
 
 // Keep the native splash visible until fonts are ready
 SplashScreen.preventAutoHideAsync();
+
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+
+    const inTabs = segments[0] === "(tabs)";
+    const inAuthFlow =
+      segments[0] === "auth" || segments[0] === "onboarding";
+
+    if (!user && inTabs) {
+      router.replace("/auth");
+    } else if (user && inAuthFlow) {
+      router.replace("/(tabs)");
+    }
+  }, [user, loading, segments]);
+
+  return <>{children}</>;
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -31,33 +54,37 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      {/*
-        Navigation flow:
-          / (index)       → Splash screen (2.5s) → /onboarding
-          /onboarding     → 3-step carousel       → /auth
-          /auth           → Sign in / Sign up      → /(tabs)
-          /(tabs)         → Main app
-      */}
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index"    options={{ animation: "none" }} />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="auth" />
-        <Stack.Screen name="(tabs)"   options={{ animation: "none" }} />
-        <Stack.Screen
-          name="transaction/[id]"
-          options={{
-            headerShown: true,
-            title: "Transaction",
-            headerBackTitle: "Back",
-            headerStyle: { backgroundColor: "#FAFAF7" },
-            headerTintColor: "#84A98C",
-            headerTitleStyle: {
-              fontFamily: "PlusJakartaSans_600SemiBold",
-              color: "#2F3E46",
-            },
-          }}
-        />
-      </Stack>
+      <AuthProvider>
+        <AuthGuard>
+          {/*
+            Navigation flow:
+              / (index)       → Splash screen (2.5s) → /onboarding
+              /onboarding     → 3-step carousel       → /auth
+              /auth           → Sign in / Sign up      → /(tabs)
+              /(tabs)         → Main app
+          */}
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" options={{ animation: "none" }} />
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="auth" />
+            <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
+            <Stack.Screen
+              name="transaction/[id]"
+              options={{
+                headerShown: true,
+                title: "Transaction",
+                headerBackTitle: "Back",
+                headerStyle: { backgroundColor: "#FAFAF7" },
+                headerTintColor: "#84A98C",
+                headerTitleStyle: {
+                  fontFamily: "PlusJakartaSans_600SemiBold",
+                  color: "#2F3E46",
+                },
+              }}
+            />
+          </Stack>
+        </AuthGuard>
+      </AuthProvider>
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );

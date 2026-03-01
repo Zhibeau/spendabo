@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -8,10 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { Colors, primaryShadow, cardShadow } from "../constants/theme";
+import { useAuth } from "../context/AuthContext";
 
 function InputField({
   label,
@@ -76,16 +77,52 @@ function InputField({
 }
 
 export default function AuthScreen() {
-  const router = useRouter();
+  const { signIn, signUp, signInWithGoogle } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    // TODO: Wire up to Firebase auth via AuthContext
-    router.replace("/(tabs)");
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      if (isSignUp) {
+        await signUp(email, password);
+      } else {
+        await signIn(email, password);
+      }
+      // AuthGuard in _layout.tsx will redirect to /(tabs) automatically
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Authentication failed";
+      setError(friendlyError(message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      // AuthGuard in _layout.tsx will redirect to /(tabs) automatically
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Google sign-in failed";
+      // Ignore cancellation — user pressed back
+      if (!message.includes("cancelled") && !message.includes("SIGN_IN_CANCELLED")) {
+        setError(friendlyError(message));
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -146,6 +183,29 @@ export default function AuthScreen() {
             </Text>
           </View>
 
+          {/* Error banner */}
+          {error && (
+            <View
+              style={{
+                backgroundColor: "#FEE2E2",
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                marginBottom: 16,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#B91C1C",
+                  fontSize: 13,
+                  fontFamily: "PlusJakartaSans_500Medium",
+                }}
+              >
+                {error}
+              </Text>
+            </View>
+          )}
+
           {/* Form */}
           <View style={{ gap: 16 }}>
             {isSignUp && (
@@ -186,6 +246,7 @@ export default function AuthScreen() {
             <TouchableOpacity
               onPress={handleSubmit}
               activeOpacity={0.85}
+              disabled={loading}
               style={{
                 height: 52,
                 backgroundColor: Colors.primary,
@@ -193,18 +254,23 @@ export default function AuthScreen() {
                 alignItems: "center",
                 justifyContent: "center",
                 marginTop: 4,
+                opacity: loading ? 0.7 : 1,
                 ...primaryShadow,
               }}
             >
-              <Text
-                style={{
-                  color: Colors.primaryForeground,
-                  fontSize: 15,
-                  fontFamily: "PlusJakartaSans_600SemiBold",
-                }}
-              >
-                {isSignUp ? "Sign Up" : "Sign In"}
-              </Text>
+              {loading ? (
+                <ActivityIndicator color={Colors.primaryForeground} />
+              ) : (
+                <Text
+                  style={{
+                    color: Colors.primaryForeground,
+                    fontSize: 15,
+                    fontFamily: "PlusJakartaSans_600SemiBold",
+                  }}
+                >
+                  {isSignUp ? "Sign Up" : "Sign In"}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -232,40 +298,69 @@ export default function AuthScreen() {
 
           {/* Social Buttons */}
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 28 }}>
-            {["Google", "Apple"].map((provider) => (
-              <TouchableOpacity
-                key={provider}
-                onPress={handleSubmit}
-                activeOpacity={0.85}
+            <TouchableOpacity
+              onPress={handleGoogle}
+              activeOpacity={0.85}
+              disabled={loading}
+              style={{
+                flex: 1,
+                height: 48,
+                backgroundColor: Colors.card,
+                borderWidth: 1.5,
+                borderColor: "rgba(0,0,0,0.07)",
+                borderRadius: 14,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: loading ? 0.7 : 1,
+                ...cardShadow,
+              }}
+            >
+              <Text
                 style={{
-                  flex: 1,
-                  height: 48,
-                  backgroundColor: Colors.card,
-                  borderWidth: 1.5,
-                  borderColor: "rgba(0,0,0,0.07)",
-                  borderRadius: 14,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  ...cardShadow,
+                  color: Colors.text,
+                  fontSize: 13,
+                  fontFamily: "PlusJakartaSans_600SemiBold",
                 }}
               >
-                <Text
-                  style={{
-                    color: Colors.text,
-                    fontSize: 13,
-                    fontFamily: "PlusJakartaSans_600SemiBold",
-                  }}
-                >
-                  {provider}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                Google
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled
+              style={{
+                flex: 1,
+                height: 48,
+                backgroundColor: Colors.card,
+                borderWidth: 1.5,
+                borderColor: "rgba(0,0,0,0.07)",
+                borderRadius: 14,
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: 0.4,
+                ...cardShadow,
+              }}
+            >
+              <Text
+                style={{
+                  color: Colors.text,
+                  fontSize: 13,
+                  fontFamily: "PlusJakartaSans_600SemiBold",
+                }}
+              >
+                Apple
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Toggle */}
           <View style={{ alignItems: "center" }}>
             <TouchableOpacity
-              onPress={() => setIsSignUp(!isSignUp)}
+              onPress={() => {
+                setIsSignUp(!isSignUp);
+                setError(null);
+              }}
               activeOpacity={0.7}
             >
               <Text
@@ -291,4 +386,27 @@ export default function AuthScreen() {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
+}
+
+// Map Firebase error codes to user-friendly messages
+function friendlyError(message: string): string {
+  if (message.includes("invalid-credential") || message.includes("wrong-password")) {
+    return "Incorrect email or password.";
+  }
+  if (message.includes("user-not-found")) {
+    return "No account found with this email.";
+  }
+  if (message.includes("email-already-in-use")) {
+    return "An account with this email already exists.";
+  }
+  if (message.includes("weak-password")) {
+    return "Password must be at least 6 characters.";
+  }
+  if (message.includes("invalid-email")) {
+    return "Please enter a valid email address.";
+  }
+  if (message.includes("network-request-failed")) {
+    return "Network error. Check your connection.";
+  }
+  return message;
 }

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "254957373150",
+    "project_id": "spendabo-483503",
+    "storage_bucket": "spendabo-483503.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:254957373150:android:8bf0ce7b0188dfd007244f",
+        "android_client_info": {
+          "package_name": "com.allmi.spendabo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "254957373150-5uuhltf3brbagiqpvoamb27kgd938skn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDs4L-EP25zTIw_E4-m2xPXFppxwnN92Vc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "254957373150-5uuhltf3brbagiqpvoamb27kgd938skn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
