@@ -32,9 +32,17 @@ jobs:
         working-directory: ./spendabo_expo
         run: npm ci
 
-      - name: Build Android APK (preview)
+      - name: Sync secrets to EAS environment
         working-directory: ./spendabo_expo
-        run: npx eas-cli build --platform android --profile preview --non-interactive
+        run: |
+          npx eas-cli env:create --environment preview --name FIREBASE_API_KEY --value "$FIREBASE_API_KEY" --visibility sensitive --force --non-interactive
+          npx eas-cli env:create --environment preview --name FIREBASE_AUTH_DOMAIN --value "$FIREBASE_AUTH_DOMAIN" --visibility sensitive --force --non-interactive
+          npx eas-cli env:create --environment preview --name FIREBASE_PROJECT_ID --value "$FIREBASE_PROJECT_ID" --visibility sensitive --force --non-interactive
+          npx eas-cli env:create --environment preview --name FIREBASE_STORAGE_BUCKET --value "$FIREBASE_STORAGE_BUCKET" --visibility sensitive --force --non-interactive
+          npx eas-cli env:create --environment preview --name FIREBASE_MESSAGING_SENDER_ID --value "$FIREBASE_MESSAGING_SENDER_ID" --visibility sensitive --force --non-interactive
+          npx eas-cli env:create --environment preview --name FIREBASE_APP_ID --value "$FIREBASE_APP_ID" --visibility sensitive --force --non-interactive
+          npx eas-cli env:create --environment preview --name GOOGLE_WEB_CLIENT_ID --value "$GOOGLE_WEB_CLIENT_ID" --visibility sensitive --force --non-interactive
+          npx eas-cli env:create --environment preview --name BACKEND_URL --value "$BACKEND_URL" --visibility plain-text --force --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
@@ -43,5 +51,11 @@ jobs:
           FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
           FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
-          BACKEND_URL: ${{ secrets.BACKEND_URL }}
           GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+
+      - name: Build Android APK (preview)
+        working-directory: ./spendabo_expo
+        run: npx eas-cli build --platform android --profile preview --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
