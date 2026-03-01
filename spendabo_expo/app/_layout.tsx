@@ -17,7 +17,7 @@ import "../global.css";
 SplashScreen.preventAutoHideAsync();
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isNewUser } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -26,14 +26,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     const inTabs = segments[0] === "(tabs)";
     const inAuthFlow =
-      segments[0] === "auth" || segments[0] === "onboarding";
+      segments[0] === "auth" ||
+      segments[0] === "onboarding" ||
+      segments[0] === "setup";
 
     if (!user && inTabs) {
       router.replace("/auth");
-    } else if (user && inAuthFlow) {
+    } else if (user && isNewUser && segments[0] !== "setup") {
+      // New user: redirect to setup regardless of where they are
+      router.replace("/setup");
+    } else if (user && !isNewUser && inAuthFlow) {
       router.replace("/(tabs)");
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, isNewUser]);
 
   return <>{children}</>;
 }
@@ -67,6 +72,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" options={{ animation: "none" }} />
             <Stack.Screen name="onboarding" />
             <Stack.Screen name="auth" />
+            <Stack.Screen name="setup" />
             <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
             <Stack.Screen
               name="transaction/[id]"

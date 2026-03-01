@@ -42,15 +42,21 @@ GoogleSignin.configure({
   webClientId: extra.googleWebClientId as string,
 });
 
+function setupKey(uid: string) {
+  return `spendabo_setup_${uid}`;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AuthState = {
   user: User | null;
   loading: boolean;
+  isNewUser: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   logOut: () => Promise<void>;
+  markSetupComplete: () => Promise<void>;
 };
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -58,19 +64,29 @@ type AuthState = {
 const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
+  isNewUser: false,
   signIn: async () => {},
   signUp: async () => {},
   signInWithGoogle: async () => {},
   logOut: async () => {},
+  markSetupComplete: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      if (firebaseUser) {
+        // Check AsyncStorage to see if this user has completed setup
+        const done = await ReactNativeAsyncStorage.getItem(setupKey(firebaseUser.uid));
+        setIsNewUser(!done);
+      } else {
+        setIsNewUser(false);
+      }
       setLoading(false);
     });
     return unsubscribe;
@@ -78,10 +94,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function signIn(email: string, password: string) {
     await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged handles isNewUser detection via AsyncStorage
   }
 
   async function signUp(email: string, password: string) {
-    await createUserWithEmailAndPassword(auth, email, password);
+    // Set isNewUser before creating the account so AuthGuard sees it
+    // when onAuthStateChanged fires with the new user
+    setIsNewUser(true);
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (e) {
+      setIsNewUser(false);
+      throw e;
+    }
   }
 
   async function signInWithGoogle() {
@@ -92,15 +117,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const credential = GoogleAuthProvider.credential(response.data.idToken);
     await signInWithCredential(auth, credential);
+    // onAuthStateChanged handles isNewUser detection via AsyncStorage
   }
 
   async function logOut() {
     await signOut(auth);
-    await GoogleSignin.signOut();
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      // Google sign-out is best-effort; may fail if signed in via email
+    }
+    setIsNewUser(false);
+  }
+
+  async function markSetupComplete() {
+    if (auth.currentUser) {
+      await ReactNativeAsyncStorage.setItem(setupKey(auth.currentUser.uid), "true");
+    }
+    setIsNewUser(false);
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, logOut }}>
+    <AuthContext.Provider value={{ user, loading, isNewUser, signIn, signUp, signInWithGoogle, logOut, markSetupComplete }}>
       {children}
     </AuthContext.Provider>
   );

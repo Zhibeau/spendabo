@@ -27,8 +27,16 @@ export async function uploadImport(
   const importId = `imp_${Date.now()}`;
   const storageRef = ref(storage(), `users/${user.uid}/imports/${importId}/${fileName}`);
 
-  const response = await fetch(uri);
-  const blob = await response.blob();
+  // XHR-based blob creation is required on Android for both
+  // file:// (camera) and content:// (gallery) URI schemes.
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = () => resolve(xhr.response as Blob);
+    xhr.onerror = () => reject(new Error("Failed to read image file"));
+    xhr.responseType = "blob";
+    xhr.open("GET", uri, true);
+    xhr.send(null);
+  });
   await uploadBytes(storageRef, blob, { contentType: mimeType });
 
   const importData: Omit<Import, "id"> = {

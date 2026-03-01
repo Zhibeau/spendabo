@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { Colors, cardShadow } from "../../constants/theme";
+import { useAuth } from "../../context/AuthContext";
 
 function SectionLabel({ title }: { title: string }) {
   return (
@@ -96,8 +97,27 @@ function SettingRow({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { user, logOut } = useAuth();
   const [notifications, setNotifications] = useState(true);
   const [smartInsights, setSmartInsights] = useState(true);
+
+  const displayName = user?.displayName || "User";
+  const displayEmail = user?.email || "";
+  const displayInitial = displayName.charAt(0).toUpperCase();
+
+  const handleLogOut = () => {
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Log Out",
+        style: "destructive",
+        onPress: async () => {
+          await logOut();
+          router.replace("/auth");
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView
@@ -150,7 +170,7 @@ export default function ProfileScreen() {
                   fontFamily: "PlusJakartaSans_600SemiBold",
                 }}
               >
-                A
+                {displayInitial}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -162,7 +182,7 @@ export default function ProfileScreen() {
                   marginBottom: 2,
                 }}
               >
-                Alex Johnson
+                {displayName}
               </Text>
               <Text
                 style={{
@@ -171,7 +191,7 @@ export default function ProfileScreen() {
                   fontFamily: "PlusJakartaSans_400Regular",
                 }}
               >
-                alex.johnson@email.com
+                {displayEmail}
               </Text>
             </View>
             <Feather name="chevron-right" size={18} color={Colors.primary} />
@@ -240,7 +260,7 @@ export default function ProfileScreen() {
 
           {/* Log Out */}
           <TouchableOpacity
-            onPress={() => router.replace("/auth")}
+            onPress={handleLogOut}
             activeOpacity={0.7}
             style={{
               backgroundColor: Colors.card,

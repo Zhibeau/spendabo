@@ -13,6 +13,7 @@ import { getMonthlyAnalytics, getTransactions, getCategories } from "../../servi
 import { formatCurrency, formatDate } from "../../services/formatters";
 import { getCategoryConfigById } from "../../constants/categoryConfig";
 import { Colors, cardShadow } from "../../constants/theme";
+import { useAuth } from "../../context/AuthContext";
 import type { MonthlyAnalytics, Transaction, Category } from "../../types";
 
 function getGreeting(): string {
@@ -34,9 +35,12 @@ function formatRelativeDate(isoDate: string): string {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [analytics, setAnalytics] = useState<MonthlyAnalytics | null>(null);
   const [recentTx, setRecentTx] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+
+  const firstName = user?.displayName?.split(" ")[0] ?? "there";
 
   useEffect(() => {
     const currentMonth = new Date().toISOString().slice(0, 7);
@@ -118,7 +122,7 @@ export default function DashboardScreen() {
                   marginTop: 2,
                 }}
               >
-                Alex 👋
+                {firstName} 👋
               </Text>
             </View>
             <View
@@ -138,7 +142,7 @@ export default function DashboardScreen() {
                   fontFamily: "PlusJakartaSans_600SemiBold",
                 }}
               >
-                A
+                {firstName.charAt(0).toUpperCase()}
               </Text>
             </View>
           </View>
