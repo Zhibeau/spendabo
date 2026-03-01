@@ -1,24 +1,45 @@
-import { IMPORTS } from "./mockData";
+import { addDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { getAuth } from "firebase/auth";
+import { db, storage } from "./firebase";
 import type { Import } from "../types";
 
-// TODO: Replace with real API calls to Cloud Run backend
-
-export async function getImports(): Promise<Import[]> {
-  // TODO: GET /api/imports
-  return [...IMPORTS].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+function importsCol(uid: string) {
+  return collection(db(), "users", uid, "imports");
 }
 
-export async function uploadImport(fileName: string): Promise<Import> {
-  // TODO: POST /api/imports (multipart upload to GCS)
-  return {
-    id: `imp_${Date.now()}`,
+export async function getImports(): Promise<Import[]> {
+  const user = getAuth().currentUser;
+  if (!user) return [];
+  const q = query(importsCol(user.uid), orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Import));
+}
+
+export async function uploadImport(
+  fileName: string,
+  uri: string,
+  mimeType: string = "application/octet-stream"
+): Promise<Import> {
+  const user = getAuth().currentUser;
+  if (!user) throw new Error("Not authenticated");
+
+  const importId = `imp_${Date.now()}`;
+  const storageRef = ref(storage(), `users/${user.uid}/imports/${importId}/${fileName}`);
+
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  await uploadBytes(storageRef, blob, { contentType: mimeType });
+
+  const importData: Omit<Import, "id"> = {
     fileName,
-    status: "processing",
+    status: "uploaded",
     totalRows: 0,
     importedCount: 0,
     errorCount: 0,
     createdAt: new Date().toISOString(),
   };
+
+  const docRef = await addDoc(importsCol(user.uid), importData);
+  return { id: docRef.id, ...importData };
 }

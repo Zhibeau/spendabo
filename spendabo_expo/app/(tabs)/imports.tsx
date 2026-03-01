@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import { Alert, FlatList, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getImports } from "../../services/importService";
+import * as DocumentPicker from "expo-document-picker";
+import { getImports, uploadImport } from "../../services/importService";
 import { formatDate } from "../../services/formatters";
 import type { Import } from "../../types";
 
@@ -69,8 +70,32 @@ function ImportCard({ item }: { item: Import }) {
 
 export default function ImportsScreen() {
   const [imports, setImports] = useState<Import[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => { getImports().then(setImports); }, []);
+
+  const handleChooseFile = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ["text/csv", "text/comma-separated-values", "application/csv", "application/vnd.ms-excel"],
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    setUploading(true);
+    try {
+      const imported = await uploadImport(
+        asset.name,
+        asset.uri,
+        asset.mimeType ?? "text/csv"
+      );
+      setImports((prev) => [imported, ...prev]);
+    } catch (e: unknown) {
+      Alert.alert("Upload Failed", e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-[#FFF8F5]" edges={["bottom"]}>
@@ -93,8 +118,12 @@ export default function ImportsScreen() {
                 <TouchableOpacity
                   className="mt-4 rounded-xl bg-teal-500 px-6 py-2.5"
                   activeOpacity={0.8}
+                  onPress={handleChooseFile}
+                  disabled={uploading}
                 >
-                  <Text className="text-sm font-semibold text-white">Choose File</Text>
+                  <Text className="text-sm font-semibold text-white">
+                    {uploading ? "Uploading..." : "Choose File"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

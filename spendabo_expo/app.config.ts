@@ -33,6 +33,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-router",
     "@react-native-google-signin/google-signin",
     [
+      "expo-image-picker",
+      {
+        "cameraPermission": "Allow Spendabo to take photos of receipts.",
+        "photoLibraryPermission": "Allow Spendabo to upload receipts from your photo library."
+      }
+    ],
+    [
       "expo-splash-screen",
       {
         image: "./assets/images/splash-icon.png",
