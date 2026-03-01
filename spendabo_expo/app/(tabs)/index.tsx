@@ -39,9 +39,26 @@ export default function DashboardScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    getMonthlyAnalytics().then(setAnalytics);
-    getTransactions().then((txs) => setRecentTx(txs.slice(0, 5)));
-    getCategories().then(setCategories);
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const emptyAnalytics: MonthlyAnalytics = {
+      month: currentMonth,
+      totalSpend: 0,
+      totalIncome: 0,
+      transactionCount: 0,
+      vsLastMonth: 0,
+      byCategory: [],
+      topMerchants: [],
+    };
+
+    Promise.all([
+      getMonthlyAnalytics().catch(() => emptyAnalytics),
+      getTransactions().catch(() => []),
+      getCategories().catch(() => []),
+    ]).then(([analytics, txs, cats]) => {
+      setAnalytics(analytics);
+      setRecentTx(txs.slice(0, 5));
+      setCategories(cats);
+    });
   }, []);
 
   const getCat = (id: string | null) => categories.find((c) => c.id === id) ?? null;

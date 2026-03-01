@@ -3,9 +3,11 @@ import { Animated, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { Colors } from "../constants/theme";
+import { useAuth } from "../context/AuthContext";
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { user, loading } = useAuth();
 
   // Animate the three loading dots sequentially
   const dot0 = useRef(new Animated.Value(0.3)).current;
@@ -13,6 +15,13 @@ export default function SplashScreen() {
   const dot2 = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
+    // If already logged in (e.g. returning from camera), skip splash immediately
+    if (!loading && user) {
+      router.replace("/(tabs)");
+      return;
+    }
+    if (loading) return;
+
     const pulse = (dot: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
@@ -43,7 +52,7 @@ export default function SplashScreen() {
       a1.stop();
       a2.stop();
     };
-  }, []);
+  }, [user, loading]);
 
   return (
     <View
