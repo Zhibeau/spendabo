@@ -6,11 +6,14 @@ import {
   User,
   createUserWithEmailAndPassword,
   getAuth,
+  getReactNativePersistence,
+  initializeAuth,
   onAuthStateChanged,
   signInWithCredential,
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { createContext, useContext, useEffect, useState } from "react";
 
@@ -26,10 +29,14 @@ const firebaseConfig = {
 };
 
 // Reuse existing app instance (prevents duplicate initialization on hot reload)
-const app: FirebaseApp =
-  getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const isNewApp = getApps().length === 0;
+const app: FirebaseApp = isNewApp ? initializeApp(firebaseConfig) : getApps()[0];
 
-const auth: Auth = getAuth(app);
+const auth: Auth = isNewApp
+  ? initializeAuth(app, {
+      persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+    })
+  : getAuth(app);
 
 GoogleSignin.configure({
   webClientId: extra.googleWebClientId as string,
