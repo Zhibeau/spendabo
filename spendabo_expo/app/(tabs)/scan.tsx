@@ -14,16 +14,20 @@ export default function ScanScreen() {
   const [state, setState] = useState<ScanState>("idle");
 
   const handleUpload = async (uri: string, mimeType: string, fileName: string) => {
+    console.log("[Scan] handleUpload called", { uri, mimeType, fileName });
     setState("uploading");
     try {
       await uploadImport(fileName, uri, mimeType);
+      console.log("[Scan] upload succeeded");
       setState("success");
       setTimeout(() => {
         router.push("/(tabs)/transactions");
       }, 1800);
     } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[Scan] upload failed:", msg, e);
       setState("idle");
-      Alert.alert("Upload Failed", e instanceof Error ? e.message : "Please try again.");
+      Alert.alert("Upload Failed", msg || "Please try again.");
     }
   };
 
@@ -39,8 +43,11 @@ export default function ScanScreen() {
     });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
+      console.log("[Scan] camera asset:", { uri: asset.uri, mimeType: asset.mimeType, width: asset.width, height: asset.height });
       const fileName = `receipt_${Date.now()}.jpg`;
       await handleUpload(asset.uri, asset.mimeType ?? "image/jpeg", fileName);
+    } else {
+      console.log("[Scan] camera canceled or no asset");
     }
   };
 
@@ -56,8 +63,11 @@ export default function ScanScreen() {
     });
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
+      console.log("[Scan] gallery asset:", { uri: asset.uri, mimeType: asset.mimeType, width: asset.width, height: asset.height });
       const fileName = `receipt_${Date.now()}.jpg`;
       await handleUpload(asset.uri, asset.mimeType ?? "image/jpeg", fileName);
+    } else {
+      console.log("[Scan] gallery canceled or no asset");
     }
   };
 
