@@ -32,7 +32,7 @@ jobs:
 
       - name: Publish EAS Update
         working-directory: ./spendabo_expo
-        run: npx eas-cli update --auto --non-interactive
+        run: npx eas-cli update --channel preview --auto --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
