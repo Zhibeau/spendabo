@@ -1,7 +1,6 @@
 import { addDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
 import { ref, uploadString } from "firebase/storage";
 import { getAuth } from "firebase/auth";
-import * as FileSystem from "expo-file-system";
 import { db, storage } from "./firebase";
 import type { Import } from "../types";
 
@@ -17,32 +16,24 @@ export async function getImports(): Promise<Import[]> {
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Import));
 }
 
+// base64Data: raw base64 string from expo-image-picker (preferred, no file I/O)
 export async function uploadImport(
   fileName: string,
-  uri: string,
-  mimeType: string = "application/octet-stream"
+  mimeType: string = "application/octet-stream",
+  base64Data: string,
 ): Promise<Import> {
-  console.log("[uploadImport] start", { fileName, uri, mimeType });
+  console.log("[uploadImport] start", { fileName, mimeType, base64Len: base64Data.length });
 
   const user = getAuth().currentUser;
   if (!user) throw new Error("Not authenticated");
-  console.log("[uploadImport] user uid:", user.uid);
 
   const importId = `imp_${Date.now()}`;
   const storagePath = `users/${user.uid}/imports/${importId}/${fileName}`;
   const storageRef = ref(storage(), storagePath);
   console.log("[uploadImport] storage path:", storagePath);
 
-  // Read the file as base64 via expo-file-system, which handles both
-  // file:// and content:// URIs reliably on Android (XHR is unreliable for local URIs).
-  console.log("[uploadImport] reading file via FileSystem...");
-  const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: "base64",
-  });
-  console.log("[uploadImport] base64 ready, length:", base64.length);
-
   console.log("[uploadImport] uploading to Firebase Storage...");
-  await uploadString(storageRef, base64, "base64", { contentType: mimeType });
+  await uploadString(storageRef, base64Data, "base64", { contentType: mimeType });
   console.log("[uploadImport] Storage upload complete");
 
   const importData: Omit<Import, "id"> = {

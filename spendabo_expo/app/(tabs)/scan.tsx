@@ -13,11 +13,11 @@ export default function ScanScreen() {
   const router = useRouter();
   const [state, setState] = useState<ScanState>("idle");
 
-  const handleUpload = async (uri: string, mimeType: string, fileName: string) => {
-    console.log("[Scan] handleUpload called", { uri, mimeType, fileName });
+  const handleUpload = async (base64: string, mimeType: string, fileName: string) => {
+    console.log("[Scan] handleUpload called", { mimeType, fileName, base64Len: base64.length });
     setState("uploading");
     try {
-      await uploadImport(fileName, uri, mimeType);
+      await uploadImport(fileName, mimeType, base64);
       console.log("[Scan] upload succeeded");
       setState("success");
       setTimeout(() => {
@@ -44,13 +44,14 @@ export default function ScanScreen() {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ["images"],
         quality: 0.8,
+        base64: true,
       });
       console.log("[Scan] camera result canceled:", result.canceled, "assets:", result.assets?.length ?? 0);
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        console.log("[Scan] camera asset:", { uri: asset.uri, mimeType: asset.mimeType });
+        console.log("[Scan] camera asset:", { mimeType: asset.mimeType, hasBase64: !!asset.base64 });
         const fileName = `receipt_${Date.now()}.jpg`;
-        await handleUpload(asset.uri, asset.mimeType ?? "image/jpeg", fileName);
+        await handleUpload(asset.base64 ?? "", asset.mimeType ?? "image/jpeg", fileName);
       }
     } catch (e) {
       console.error("[Scan] camera error:", e instanceof Error ? e.message : String(e));
@@ -71,13 +72,14 @@ export default function ScanScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         quality: 0.8,
+        base64: true,
       });
       console.log("[Scan] gallery result canceled:", result.canceled, "assets:", result.assets?.length ?? 0);
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        console.log("[Scan] gallery asset:", { uri: asset.uri, mimeType: asset.mimeType });
+        console.log("[Scan] gallery asset:", { mimeType: asset.mimeType, hasBase64: !!asset.base64 });
         const fileName = `receipt_${Date.now()}.jpg`;
-        await handleUpload(asset.uri, asset.mimeType ?? "image/jpeg", fileName);
+        await handleUpload(asset.base64 ?? "", asset.mimeType ?? "image/jpeg", fileName);
       }
     } catch (e) {
       console.error("[Scan] gallery error:", e instanceof Error ? e.message : String(e));
