@@ -1,5 +1,5 @@
 import { addDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
-import { ref, uploadString } from "firebase/storage";
+import { ref, uploadBytes } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 import { db, storage } from "./firebase";
 import type { Import } from "../types";
@@ -32,8 +32,17 @@ export async function uploadImport(
   const storageRef = ref(storage(), storagePath);
   console.log("[uploadImport] storage path:", storagePath);
 
+  // uploadString("base64") fails in React Native because Firebase internally tries
+  // new Blob([ArrayBuffer]) which RN doesn't support.
+  // Workaround: convert base64 → data URI → fetch → Blob (RN handles data URIs natively).
+  console.log("[uploadImport] converting base64 to blob via data URI...");
+  const dataUri = `data:${mimeType};base64,${base64Data}`;
+  const fetchRes = await fetch(dataUri);
+  const blob = await fetchRes.blob();
+  console.log("[uploadImport] blob ready, size:", blob.size);
+
   console.log("[uploadImport] uploading to Firebase Storage...");
-  await uploadString(storageRef, base64Data, "base64", { contentType: mimeType });
+  await uploadBytes(storageRef, blob, { contentType: mimeType });
   console.log("[uploadImport] Storage upload complete");
 
   const importData: Omit<Import, "id"> = {
