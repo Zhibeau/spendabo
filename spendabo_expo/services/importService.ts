@@ -37,7 +37,7 @@ export async function uploadImport(
   // file:// and content:// URIs reliably on Android (XHR is unreliable for local URIs).
   console.log("[uploadImport] reading file via FileSystem...");
   const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
+    encoding: "base64",
   });
   console.log("[uploadImport] base64 ready, length:", base64.length);
 
