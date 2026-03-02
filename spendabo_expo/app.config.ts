@@ -1,7 +1,11 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...config,
+export default ({ config }: ConfigContext): ExpoConfig => {
+  // SDK 55 injects newArchEnabled:true into the base config, but the app.json
+  // schema validator doesn't recognise it as an explicit field — strip it out.
+  const { newArchEnabled: _unused, ...baseConfig } = config as ExpoConfig & { newArchEnabled?: boolean };
+  return {
+  ...baseConfig,
   name: "spendabo_expo",
   slug: "spendabo",
   version: "1.0.0",
@@ -78,4 +82,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   updates: {
     url: "https://u.expo.dev/440a3821-9018-47bf-a30d-e0e3ae5b569d",
   },
-});
+  };
+};
