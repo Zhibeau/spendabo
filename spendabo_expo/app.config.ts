@@ -31,6 +31,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     "expo-router",
+    "expo-font",
+    "expo-image",
+    "expo-web-browser",
     "@react-native-google-signin/google-signin",
     [
       "expo-image-picker",
