@@ -55,6 +55,14 @@
     "typescript": "~5.9.2"
   },
   "private": true,
+  "overrides": {
+    "@firebase/auth": {
+      "@react-native-async-storage/async-storage": "2.2.0"
+    },
+    "@firebase/auth-compat": {
+      "@react-native-async-storage/async-storage": "2.2.0"
+    }
+  },
   "expo": {
     "install": {
       "exclude": [
