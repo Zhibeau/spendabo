@@ -23,11 +23,11 @@
     "expo": "~55.0.4",
     "expo-constants": "~55.0.7",
     "expo-dev-client": "~55.0.10",
-    "expo-document-picker": "~14.0.8",
+    "expo-document-picker": "~55.0.8",
     "expo-font": "~55.0.4",
     "expo-haptics": "~55.0.8",
     "expo-image": "~55.0.5",
-    "expo-image-picker": "~17.0.10",
+    "expo-image-picker": "~55.0.10",
     "expo-linking": "~55.0.7",
     "expo-router": "~55.0.3",
     "expo-splash-screen": "~55.0.10",
@@ -67,9 +67,7 @@
   "expo": {
     "install": {
       "exclude": [
-        "@react-native-async-storage/async-storage",
-        "expo-document-picker",
-        "expo-image-picker"
+        "@react-native-async-storage/async-storage"
       ]
     }
   }
