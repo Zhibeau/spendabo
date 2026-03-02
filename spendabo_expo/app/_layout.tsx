@@ -52,7 +52,10 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
+    if (fontsLoaded) {
+      console.log("[Spendabo] bundle loaded — upload-debug build active");
+      SplashScreen.hideAsync();
+    }
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
