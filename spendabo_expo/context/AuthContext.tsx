@@ -15,6 +15,7 @@ import {
 } from "firebase/auth";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { Platform } from "react-native";
 import { createContext, useContext, useEffect, useState } from "react";
 
 const extra = Constants.expoConfig?.extra ?? {};
@@ -32,9 +33,12 @@ const firebaseConfig = {
 const isNewApp = getApps().length === 0;
 const app: FirebaseApp = isNewApp ? initializeApp(firebaseConfig) : getApps()[0];
 
+// getReactNativePersistence is only available on native — web uses browser default
 const auth: Auth = isNewApp
   ? initializeAuth(app, {
-      persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+      persistence: Platform.OS !== "web"
+        ? getReactNativePersistence(ReactNativeAsyncStorage)
+        : undefined,
     })
   : getAuth(app);
 
