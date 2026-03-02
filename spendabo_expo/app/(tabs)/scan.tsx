@@ -32,42 +32,56 @@ export default function ScanScreen() {
   };
 
   const handleCamera = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission Required", "Camera access is needed to scan receipts.");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      console.log("[Scan] camera asset:", { uri: asset.uri, mimeType: asset.mimeType, width: asset.width, height: asset.height });
-      const fileName = `receipt_${Date.now()}.jpg`;
-      await handleUpload(asset.uri, asset.mimeType ?? "image/jpeg", fileName);
-    } else {
-      console.log("[Scan] camera canceled or no asset");
+    try {
+      console.log("[Scan] requesting camera permission...");
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      console.log("[Scan] camera permission:", JSON.stringify(permission));
+      if (!permission.granted) {
+        Alert.alert("Permission Required", "Camera access is needed to scan receipts.");
+        return;
+      }
+      console.log("[Scan] launching camera...");
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
+        quality: 0.8,
+      });
+      console.log("[Scan] camera result canceled:", result.canceled, "assets:", result.assets?.length ?? 0);
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        console.log("[Scan] camera asset:", { uri: asset.uri, mimeType: asset.mimeType });
+        const fileName = `receipt_${Date.now()}.jpg`;
+        await handleUpload(asset.uri, asset.mimeType ?? "image/jpeg", fileName);
+      }
+    } catch (e) {
+      console.error("[Scan] camera error:", e instanceof Error ? e.message : String(e));
+      Alert.alert("Camera Error", e instanceof Error ? e.message : "Something went wrong.");
     }
   };
 
   const handleGallery = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert("Permission Required", "Photo library access is needed to upload receipts.");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      console.log("[Scan] gallery asset:", { uri: asset.uri, mimeType: asset.mimeType, width: asset.width, height: asset.height });
-      const fileName = `receipt_${Date.now()}.jpg`;
-      await handleUpload(asset.uri, asset.mimeType ?? "image/jpeg", fileName);
-    } else {
-      console.log("[Scan] gallery canceled or no asset");
+    try {
+      console.log("[Scan] requesting gallery permission...");
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log("[Scan] gallery permission:", JSON.stringify(permission));
+      if (!permission.granted) {
+        Alert.alert("Permission Required", "Photo library access is needed to upload receipts.");
+        return;
+      }
+      console.log("[Scan] launching gallery...");
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.8,
+      });
+      console.log("[Scan] gallery result canceled:", result.canceled, "assets:", result.assets?.length ?? 0);
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        console.log("[Scan] gallery asset:", { uri: asset.uri, mimeType: asset.mimeType });
+        const fileName = `receipt_${Date.now()}.jpg`;
+        await handleUpload(asset.uri, asset.mimeType ?? "image/jpeg", fileName);
+      }
+    } catch (e) {
+      console.error("[Scan] gallery error:", e instanceof Error ? e.message : String(e));
+      Alert.alert("Gallery Error", e instanceof Error ? e.message : "Something went wrong.");
     }
   };
 
