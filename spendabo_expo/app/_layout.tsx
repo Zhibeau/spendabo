@@ -8,6 +8,7 @@ import {
   PlusJakartaSans_700Bold,
 } from "@expo-google-fonts/plus-jakarta-sans";
 import * as SplashScreen from "expo-splash-screen";
+import * as Updates from "expo-updates";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../context/AuthContext";
@@ -51,9 +52,25 @@ export default function RootLayout() {
     PlusJakartaSans_700Bold,
   });
 
+  // Eagerly check for OTA updates on every launch in production.
+  // Downloads and reloads immediately so the user always has the latest bundle.
+  useEffect(() => {
+    if (__DEV__) return;
+    (async () => {
+      try {
+        const check = await Updates.checkForUpdateAsync();
+        if (check.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch {
+        // Network unavailable or not an EAS build — silently ignore
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     if (fontsLoaded) {
-      console.log("[Spendabo] bundle loaded — upload-debug build active");
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
