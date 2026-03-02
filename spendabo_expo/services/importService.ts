@@ -1,6 +1,7 @@
 import { addDoc, collection, getDocs, orderBy, query } from "firebase/firestore";
-import { ref, uploadBytes } from "firebase/storage";
+import { ref, uploadString } from "firebase/storage";
 import { getAuth } from "firebase/auth";
+import * as FileSystem from "expo-file-system";
 import { db, storage } from "./firebase";
 import type { Import } from "../types";
 
@@ -32,37 +33,16 @@ export async function uploadImport(
   const storageRef = ref(storage(), storagePath);
   console.log("[uploadImport] storage path:", storagePath);
 
-  // XHR-based blob creation works on Android for both file:// and content:// URIs.
-  // Note: xhr.onload fires for any HTTP response (including non-200), so we check
-  // xhr.status. For local file:// URIs the status is always 0 but response is valid.
-  console.log("[uploadImport] reading blob via XHR...");
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.onload = () => {
-      console.log("[uploadImport] XHR onload, status:", xhr.status, "blobSize:", (xhr.response as Blob)?.size);
-      if (xhr.status !== 0 && xhr.status >= 400) {
-        reject(new Error(`Failed to read file (HTTP ${xhr.status})`));
-      } else {
-        resolve(xhr.response as Blob);
-      }
-    };
-    xhr.onerror = (e) => {
-      console.error("[uploadImport] XHR onerror:", e);
-      reject(new Error("Failed to read image file (XHR error)"));
-    };
-    xhr.ontimeout = () => {
-      console.error("[uploadImport] XHR timeout");
-      reject(new Error("Failed to read image file (timeout)"));
-    };
-    xhr.responseType = "blob";
-    xhr.open("GET", uri, true);
-    xhr.send(null);
+  // Read the file as base64 via expo-file-system, which handles both
+  // file:// and content:// URIs reliably on Android (XHR is unreliable for local URIs).
+  console.log("[uploadImport] reading file via FileSystem...");
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
   });
-
-  console.log("[uploadImport] blob ready, size:", blob.size, "type:", blob.type);
+  console.log("[uploadImport] base64 ready, length:", base64.length);
 
   console.log("[uploadImport] uploading to Firebase Storage...");
-  await uploadBytes(storageRef, blob, { contentType: mimeType });
+  await uploadString(storageRef, base64, "base64", { contentType: mimeType });
   console.log("[uploadImport] Storage upload complete");
 
   const importData: Omit<Import, "id"> = {
